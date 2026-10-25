@@ -1,0 +1,384 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class YouTubeTranscriptService
+{
+    protected const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    protected const INNERTUBE_API_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
+    protected const INNERTUBE_CLIENT_VERSION = '20.10.38';
+
+    /**
+     * Extract transcript and video metadata using 100% Native PHP.
+     * Works seamlessly on Windows, VPS, and Shared Hosting (zero Node.js required).
+     *
+     * @param string $urlOrId
+     * @param string|null $preferredLang
+     * @return array
+     */
+    public function extract(string $urlOrId, ?string $preferredLang = 'ar'): array
+    {
+        $videoId = $this->extractVideoId($urlOrId);
+
+        if (!$videoId) {
+            return [
+                'success' => false,
+                'code' => 'INVALID_URL',
+                'message_ar' => 'رابط يوتيوب المدخل غير صالح. يرجى التأكد من الرابط.',
+                'message_en' => 'Invalid YouTube URL or Video ID provided.',
+            ];
+        }
+
+        // 1. Fetch Caption Tracks via InnerTube API (Primary) or WebPage HTML (Fallback)
+        $captionTracks = $this->fetchCaptionTracksViaInnerTube($videoId);
+
+        if (empty($captionTracks)) {
+            $captionTracks = $this->fetchCaptionTracksViaWebPage($videoId);
+        }
+
+        if (empty($captionTracks)) {
+            return [
+                'success' => false,
+                'code' => 'TRANSCRIPTS_DISABLED',
+                'message_ar' => 'عذراً، هذا الفيديو لا يحتوي على تفريغ نصي أو ترجمة متاحة على يوتيوب.',
+                'message_en' => 'No transcripts available or captions disabled on this video.',
+            ];
+        }
+
+        // 2. Select track (prefer Arabic if available, else first track)
+        $selectedTrack = $this->selectTrack($captionTracks, $preferredLang);
+
+        if (!$selectedTrack || empty($selectedTrack['baseUrl'])) {
+            return [
+                'success' => false,
+                'code' => 'NO_SUITABLE_TRACK',
+                'message_ar' => 'تعذر العثور على مسار تفريغ صالح لهذا الفيديو.',
+                'message_en' => 'Unable to locate a valid caption track.',
+            ];
+        }
+
+        // 3. Fetch TimedText XML
+        $xmlBody = $this->fetchTimedTextXml($selectedTrack['baseUrl']);
+
+        if (empty($xmlBody)) {
+            return [
+                'success' => false,
+                'code' => 'EMPTY_TIMEDTEXT',
+                'message_ar' => 'فشل في استلام بيانات النص من خوادم يوتيوب.',
+                'message_en' => 'YouTube timedtext returned empty response.',
+            ];
+        }
+
+        // 4. Parse Segments from XML
+        $segmentsData = $this->parseTranscriptXml($xmlBody, $selectedTrack['languageCode'] ?? 'ar');
+
+        if (empty($segmentsData['segments'])) {
+            return [
+                'success' => false,
+                'code' => 'EMPTY_TRANSCRIPT',
+                'message_ar' => 'لم يتم العثور على نصوص مقروءة داخل ملف الترجمة.',
+                'message_en' => 'No readable text entries found in transcript.',
+            ];
+        }
+
+        $videoUrl = "https://www.youtube.com/watch?v={$videoId}";
+
+        // 5. Enrich with Video Metadata via oEmbed API
+        $meta = $this->fetchMetadata($videoUrl, $videoId);
+
+        return [
+            'success' => true,
+            'video_id' => $videoId,
+            'video_url' => $videoUrl,
+            'title' => $meta['title'] ?? "فيديو يوتيوب ({$videoId})",
+            'channel_name' => $meta['author_name'] ?? 'قناة يوتيوب',
+            'thumbnail_url' => $meta['thumbnail_url'] ?? "https://img.youtube.com/vi/{$videoId}/maxresdefault.jpg",
+            'language' => $selectedTrack['languageCode'] ?? 'ar',
+            'segment_count' => count($segmentsData['segments']),
+            'duration_seconds' => $segmentsData['duration_seconds'],
+            'duration_formatted' => $this->formatTimestamp($segmentsData['duration_seconds']),
+            'full_text' => $segmentsData['full_text'],
+            'segments' => $segmentsData['segments'],
+        ];
+    }
+
+    /**
+     * Fetch caption tracks using YouTube InnerTube Android API.
+     */
+    protected function fetchCaptionTracksViaInnerTube(string $videoId): array
+    {
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => 'com.google.android.youtube/' . self::INNERTUBE_CLIENT_VERSION . ' (Linux; U; Android 14)',
+                ])
+                ->post(self::INNERTUBE_API_URL, [
+                    'context' => [
+                        'client' => [
+                            'clientName' => 'ANDROID',
+                            'clientVersion' => self::INNERTUBE_CLIENT_VERSION,
+                        ],
+                    ],
+                    'videoId' => $videoId,
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $tracks = $data['captions']['playerCaptionsTracklistRenderer']['captionTracks'] ?? [];
+                if (is_array($tracks) && !empty($tracks)) {
+                    return $tracks;
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("InnerTube caption fetch failed: {$e->getMessage()}");
+        }
+
+        return [];
+    }
+
+    /**
+     * Fallback: Fetch caption tracks by scraping YouTube video webpage HTML.
+     */
+    protected function fetchCaptionTracksViaWebPage(string $videoId): array
+    {
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'User-Agent' => self::USER_AGENT,
+                    'Accept-Language' => 'ar,en;q=0.9',
+                ])
+                ->get("https://www.youtube.com/watch?v={$videoId}");
+
+            if ($response->successful()) {
+                $html = $response->body();
+
+                // Regex for captionTracks in ytInitialPlayerResponse
+                if (preg_match('/"captionTracks":\s*(\[.*?\])/s', $html, $matches)) {
+                    $tracks = json_decode($matches[1], true);
+                    if (is_array($tracks) && !empty($tracks)) {
+                        return $tracks;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Webpage caption fetch failed: {$e->getMessage()}");
+        }
+
+        return [];
+    }
+
+    /**
+     * Select preferred caption track (Arabic first, or preferred language).
+     */
+    protected function selectTrack(array $captionTracks, ?string $preferredLang): ?array
+    {
+        // 1. Search for preferred language (e.g. 'ar')
+        if ($preferredLang) {
+            foreach ($captionTracks as $track) {
+                if (($track['languageCode'] ?? '') === $preferredLang) {
+                    return $track;
+                }
+            }
+        }
+
+        // 2. Search for any Arabic dialect
+        foreach ($captionTracks as $track) {
+            $code = strtolower($track['languageCode'] ?? '');
+            if (str_starts_with($code, 'ar')) {
+                return $track;
+            }
+        }
+
+        // 3. Fall back to the first available track
+        return $captionTracks[0] ?? null;
+    }
+
+    /**
+     * Fetch timedtext XML from the caption track baseUrl.
+     */
+    protected function fetchTimedTextXml(string $baseUrl): ?string
+    {
+        try {
+            $response = Http::timeout(20)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36,gzip(gfe)',
+                ])
+                ->get($baseUrl);
+
+            if ($response->successful()) {
+                return $response->body();
+            }
+        } catch (\Throwable $e) {
+            Log::warning("TimedText XML fetch failed: {$e->getMessage()}");
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse transcript XML (supports modern srv3 format <p t="..." d="..."> and classic <text start="..." dur="...">).
+     */
+    protected function parseTranscriptXml(string $xml, string $lang): array
+    {
+        $segments = [];
+        $fullTextParts = [];
+        $maxEndTime = 0;
+        $index = 1;
+
+        // 1. Check srv3 format: <p t="startMs" d="durMs">...</p>
+        if (preg_match_all('/<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/', $xml, $matches, PREG_SET_ORDER)) {
+            $prevText = '';
+
+            foreach ($matches as $m) {
+                $startMs = (int) $m[1];
+                $durMs = (int) $m[2];
+                $rawText = strip_tags($m[3]);
+                $cleanText = $this->cleanTranscriptText($rawText);
+
+                if (empty($cleanText)) {
+                    continue;
+                }
+
+                // Avoid immediate duplicates
+                if ($cleanText === $prevText) {
+                    continue;
+                }
+                $prevText = $cleanText;
+
+                $offsetSec = round($startMs / 1000, 2);
+                $durationSec = round($durMs / 1000, 2);
+                $endSec = round(($startMs + $durMs) / 1000, 2);
+
+                if ($endSec > $maxEndTime) {
+                    $maxEndTime = $endSec;
+                }
+
+                $fullTextParts[] = $cleanText;
+
+                $segments[] = [
+                    'index' => $index++,
+                    'text' => $cleanText,
+                    'offset_seconds' => $offsetSec,
+                    'duration_seconds' => $durationSec,
+                    'end_seconds' => $endSec,
+                    'timestamp_formatted' => $this->formatTimestamp($offsetSec),
+                ];
+            }
+        }
+
+        // 2. Fallback to classic format: <text start="s" dur="s">content</text>
+        if (empty($segments) && preg_match_all('/<text\s+start="([^"]*)"\s+dur="([^"]*)"[^>]*>([\s\S]*?)<\/text>/', $xml, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $m) {
+                $offsetSec = round((float) $m[1], 2);
+                $durationSec = round((float) $m[2], 2);
+                $cleanText = $this->cleanTranscriptText($m[3]);
+
+                if (empty($cleanText)) {
+                    continue;
+                }
+
+                $endSec = round($offsetSec + $durationSec, 2);
+                if ($endSec > $maxEndTime) {
+                    $maxEndTime = $endSec;
+                }
+
+                $fullTextParts[] = $cleanText;
+
+                $segments[] = [
+                    'index' => $index++,
+                    'text' => $cleanText,
+                    'offset_seconds' => $offsetSec,
+                    'duration_seconds' => $durationSec,
+                    'end_seconds' => $endSec,
+                    'timestamp_formatted' => $this->formatTimestamp($offsetSec),
+                ];
+            }
+        }
+
+        return [
+            'duration_seconds' => (int) round($maxEndTime),
+            'full_text' => implode(' ', $fullTextParts),
+            'segments' => $segments,
+        ];
+    }
+
+    /**
+     * Clean and decode HTML entities in transcript text.
+     */
+    protected function cleanTranscriptText(string $text): string
+    {
+        $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $cleaned = preg_replace('/\s+/', ' ', $decoded);
+        return trim($cleaned);
+    }
+
+    /**
+     * Extract 11-character YouTube video ID.
+     */
+    public function extractVideoId(string $urlOrId): ?string
+    {
+        $trimmed = trim($urlOrId);
+
+        if (preg_match('/^[a-zA-Z0-9_-]{11}$/', $trimmed)) {
+            return $trimmed;
+        }
+
+        $patterns = [
+            '/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/',
+            '/youtube\.com\/live\/([\w-]{11})/',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $trimmed, $match)) {
+                return $match[1];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Format seconds into MM:SS or HH:MM:SS.
+     */
+    protected function formatTimestamp(float|int $seconds): string
+    {
+        $s = (int) floor($seconds);
+        $hrs = (int) floor($s / 3600);
+        $mins = (int) floor(($s % 3600) / 60);
+        $secs = $s % 60;
+
+        if ($hrs > 0) {
+            return sprintf('%02d:%02d:%02d', $hrs, $mins, $secs);
+        }
+        return sprintf('%02d:%02d', $mins, $secs);
+    }
+
+    /**
+     * Fetch YouTube oEmbed metadata (Title, Author, Thumbnail).
+     */
+    protected function fetchMetadata(string $videoUrl, string $videoId): array
+    {
+        try {
+            $response = Http::timeout(6)->get('https://www.youtube.com/oembed', [
+                'url' => $videoUrl,
+                'format' => 'json',
+            ]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+        } catch (\Throwable $e) {
+            Log::warning("oEmbed metadata fetch failed for {$videoUrl}: {$e->getMessage()}");
+        }
+
+        return [
+            'title' => "فيديو يوتيوب ({$videoId})",
+            'author_name' => 'قناة يوتيوب',
+            'thumbnail_url' => "https://img.youtube.com/vi/{$videoId}/hqdefault.jpg",
+        ];
+    }
+}
