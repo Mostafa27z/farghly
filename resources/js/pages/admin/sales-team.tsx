@@ -63,19 +63,19 @@ export default function SalesTeamIndex({ salesReps }: Props) {
     };
 
     return (
-        <div dir="rtl" className="min-h-screen bg-[#0A0E16] text-[#DFE2EE] font-sans antialiased">
-            <Head title="إدارة فريق المبيعات | نَص تيوب" />
+        <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-[#0A0E16] text-slate-800 dark:text-[#DFE2EE] font-sans antialiased transition-colors">
+            <Head title="إدارة فريق المبيعات | فرغلي" />
 
             <StaffHeader />
 
             <main className="max-w-7xl mx-auto px-6 py-8">
                 {/* Header Title */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8 pb-4 border-b border-white/10">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200 dark:border-white/10">
                     <div>
-                        <h1 className="text-2xl font-extrabold text-white mb-1">
+                        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1">
                             إدارة فريق ومسؤولي المبيعات
                         </h1>
-                        <p className="text-xs text-[#BBCAFF]">
+                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">
                             إضافة حسابات مناديب المبيعات الجدد، إدارة صلاحياتهم، تفعيل أو إيقاف الحسابات، وتعيين كلمات المرور.
                         </p>
                     </div>
@@ -91,10 +91,10 @@ export default function SalesTeamIndex({ salesReps }: Props) {
                 </div>
 
                 {/* Sales Team Table */}
-                <div className="rounded-2xl bg-[#141822] border border-white/10 overflow-hidden shadow-xl">
+                <div className="rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 overflow-hidden shadow-xs dark:shadow-xl">
                     <div className="overflow-x-auto">
                         <table className="w-full text-right text-xs">
-                            <thead className="bg-[#0F131C] text-[#BBCAFF] border-b border-white/10">
+                            <thead className="bg-slate-50 dark:bg-[#0F131C] text-slate-600 dark:text-[#BBCAFF] border-b border-slate-200 dark:border-white/10">
                                 <tr>
                                     <th className="py-3.5 px-4 font-bold">اسم الموظف</th>
                                     <th className="py-3.5 px-4 font-bold">البريد الإلكتروني</th>
@@ -106,22 +106,22 @@ export default function SalesTeamIndex({ salesReps }: Props) {
                                     <th className="py-3.5 px-4 font-bold text-center">الإجراءات</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {salesReps.map((rep) => (
-                                    <tr key={rep.id} className="hover:bg-white/[0.02] transition-colors">
-                                        <td className="py-4 px-4 font-bold text-white text-sm">
+                                    <tr key={rep.id} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors">
+                                        <td className="py-4 px-4 font-bold text-slate-900 dark:text-white text-sm">
                                             {rep.name}
                                         </td>
 
-                                        <td className="py-4 px-4 font-mono text-[#BBCAFF]">
+                                        <td className="py-4 px-4 font-mono text-slate-600 dark:text-[#BBCAFF]">
                                             {rep.email}
                                         </td>
 
                                         <td className="py-4 px-4">
                                             <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${
                                                 rep.system_role === 'super_admin'
-                                                    ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-                                                    : 'bg-[#10B981]/15 text-[#4EDEA3] border border-[#10B981]/30'
+                                                    ? 'bg-purple-50 dark:bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/30'
+                                                    : 'bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30'
                                             }`}>
                                                 {rep.system_role === 'super_admin' ? 'مدير عام' : 'مندوب مبيعات'}
                                             </span>
@@ -129,25 +129,25 @@ export default function SalesTeamIndex({ salesReps }: Props) {
 
                                         <td className="py-4 px-4">
                                             {rep.is_active ? (
-                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-[#4EDEA3] border border-emerald-500/30">
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-emerald-500/30">
                                                     نشط
                                                 </span>
                                             ) : (
-                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
+                                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30">
                                                     معطل وموقوف
                                                 </span>
                                             )}
                                         </td>
 
-                                        <td className="py-4 px-4 text-center font-mono font-bold text-white">
+                                        <td className="py-4 px-4 text-center font-mono font-bold text-slate-900 dark:text-white">
                                             {rep.created_tenants_count}
                                         </td>
 
-                                        <td className="py-4 px-4 text-center font-mono font-bold text-white">
+                                        <td className="py-4 px-4 text-center font-mono font-bold text-slate-900 dark:text-white">
                                             {rep.transactions_count}
                                         </td>
 
-                                        <td className="py-4 px-4 text-[#BBCAFF] font-mono">
+                                        <td className="py-4 px-4 text-slate-600 dark:text-[#BBCAFF] font-mono">
                                             {rep.created_at}
                                         </td>
 
@@ -156,7 +156,7 @@ export default function SalesTeamIndex({ salesReps }: Props) {
                                                 <button
                                                     type="button"
                                                     onClick={() => setPasswordModalUser(rep)}
-                                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#BBCAFF] hover:text-white transition-all cursor-pointer"
+                                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                                                     title="تغيير كلمة المرور"
                                                 >
                                                     <span className="material-symbols-outlined text-base">key</span>
@@ -167,8 +167,8 @@ export default function SalesTeamIndex({ salesReps }: Props) {
                                                     onClick={() => handleToggleStatus(rep)}
                                                     className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                                                         rep.is_active
-                                                            ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                                            : 'bg-emerald-500/10 text-[#4EDEA3] hover:bg-emerald-500/20'
+                                                            ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20'
+                                                            : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-[#4EDEA3] dark:hover:bg-emerald-500/20'
                                                     }`}
                                                 >
                                                     {rep.is_active ? 'إيقاف الحساب' : 'تفعيل الحساب'}
@@ -185,17 +185,17 @@ export default function SalesTeamIndex({ salesReps }: Props) {
 
             {/* MODAL 1: ADD NEW SALES REP */}
             {showAddModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-                    <div className="w-full max-w-md my-8 rounded-3xl bg-[#141822] border border-white/15 p-6 sm:p-8 shadow-2xl relative text-right">
-                        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md overflow-y-auto">
+                    <div className="w-full max-w-md my-8 rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/15 p-6 sm:p-8 shadow-2xl relative text-right">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-6">
                             <div>
-                                <h3 className="text-lg font-bold text-white mb-1">إضافة موظف مبيعات جديد</h3>
-                                <p className="text-xs text-[#BBCAFF]">إنشاء حساب وتعيين الصلاحيات</p>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">إضافة موظف مبيعات جديد</h3>
+                                <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">إنشاء حساب وتعيين الصلاحيات</p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowAddModal(false)}
-                                className="text-white/40 hover:text-white transition-colors cursor-pointer"
+                                className="text-slate-400 hover:text-slate-600 dark:text-white/40 dark:hover:text-white transition-colors cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
@@ -203,67 +203,67 @@ export default function SalesTeamIndex({ salesReps }: Props) {
 
                         <form onSubmit={handleAddSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-[#DFE2EE] mb-1">اسم الموظف:</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">اسم الموظف:</label>
                                 <input
                                     type="text"
                                     required
                                     value={addForm.data.name}
                                     onChange={(e) => addForm.setData('name', e.target.value)}
                                     placeholder="مثال: يوسف الكردي"
-                                    className="w-full px-3 py-2 rounded-xl bg-[#0F131C] border border-white/10 text-xs text-white outline-none focus:border-[#10B981]"
+                                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
                                 />
                                 {addForm.errors.name && (
-                                    <p className="text-red-400 text-xs mt-1">{addForm.errors.name}</p>
+                                    <p className="text-red-500 text-xs mt-1">{addForm.errors.name}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-[#DFE2EE] mb-1">البريد الإلكتروني للعمل:</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">البريد الإلكتروني للعمل:</label>
                                 <input
                                     type="email"
                                     required
                                     value={addForm.data.email}
                                     onChange={(e) => addForm.setData('email', e.target.value)}
-                                    placeholder="yousef@nasstube.com"
-                                    className="w-full px-3 py-2 rounded-xl bg-[#0F131C] border border-white/10 text-xs text-white outline-none focus:border-[#10B981]"
+                                    placeholder="yousef@farghly.com"
+                                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
                                 />
                                 {addForm.errors.email && (
-                                    <p className="text-red-400 text-xs mt-1">{addForm.errors.email}</p>
+                                    <p className="text-red-500 text-xs mt-1">{addForm.errors.email}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-[#DFE2EE] mb-1">كلمة المرور:</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">كلمة المرور:</label>
                                 <input
                                     type="password"
                                     required
                                     value={addForm.data.password}
                                     onChange={(e) => addForm.setData('password', e.target.value)}
                                     placeholder="••••••••"
-                                    className="w-full px-3 py-2 rounded-xl bg-[#0F131C] border border-white/10 text-xs text-white outline-none focus:border-[#10B981]"
+                                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
                                 />
                                 {addForm.errors.password && (
-                                    <p className="text-red-400 text-xs mt-1">{addForm.errors.password}</p>
+                                    <p className="text-red-500 text-xs mt-1">{addForm.errors.password}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-[#DFE2EE] mb-1">نوع الدور والصلاحية:</label>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">نوع الدور والصلاحية:</label>
                                 <select
                                     value={addForm.data.system_role}
                                     onChange={(e) => addForm.setData('system_role', e.target.value)}
-                                    className="w-full px-3 py-2 rounded-xl bg-[#0F131C] border border-white/10 text-xs text-white outline-none focus:border-[#10B981]"
+                                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
                                 >
-                                    <option value="sales">مندوب مبيعات (Sales Rep)</option>
-                                    <option value="super_admin">مدير عام للنظام (Super Admin)</option>
+                                    <option value="sales" className="text-slate-900 dark:text-white dark:bg-[#141822]">مندوب مبيعات (Sales Rep)</option>
+                                    <option value="super_admin" className="text-slate-900 dark:text-white dark:bg-[#141822]">مدير عام للنظام (Super Admin)</option>
                                 </select>
                             </div>
 
-                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
                                 <button
                                     type="button"
                                     onClick={() => setShowAddModal(false)}
-                                    className="px-4 py-2 text-xs text-[#BBCAFF] hover:text-white"
+                                    className="px-4 py-2 text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white"
                                 >
                                     إلغاء
                                 </button>
@@ -282,12 +282,12 @@ export default function SalesTeamIndex({ salesReps }: Props) {
 
             {/* MODAL 2: RESET PASSWORD */}
             {passwordModalUser && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                    <div className="w-full max-w-sm rounded-3xl bg-[#141822] border border-white/15 p-6 shadow-2xl relative text-right">
-                        <h3 className="text-base font-bold text-white mb-1">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md">
+                    <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/15 p-6 shadow-2xl relative text-right">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
                             تغيير كلمة المرور: {passwordModalUser.name}
                         </h3>
-                        <p className="text-xs text-[#BBCAFF] mb-4">أدخل كلمة المرور الجديدة لهذا الموظف</p>
+                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF] mb-4">أدخل كلمة المرور الجديدة لهذا الموظف</p>
 
                         <form onSubmit={handlePasswordSubmit} className="space-y-4">
                             <div>
@@ -297,7 +297,7 @@ export default function SalesTeamIndex({ salesReps }: Props) {
                                     value={passwordForm.data.password}
                                     onChange={(e) => passwordForm.setData('password', e.target.value)}
                                     placeholder="كلمة المرور الجديدة (6 أحرف على الأقل)..."
-                                    className="w-full px-3 py-2 rounded-xl bg-[#0F131C] border border-white/10 text-xs text-white outline-none focus:border-[#10B981]"
+                                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
                                 />
                             </div>
 
@@ -305,7 +305,7 @@ export default function SalesTeamIndex({ salesReps }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => setPasswordModalUser(null)}
-                                    className="px-3 py-1.5 text-xs text-[#BBCAFF] hover:text-white"
+                                    className="px-3 py-1.5 text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white"
                                 >
                                     إلغاء
                                 </button>

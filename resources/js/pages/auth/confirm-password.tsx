@@ -21,12 +21,12 @@ export default function ConfirmPassword() {
             title="تأكيد كلمة المرور"
             description="هذه منطقة آمنة ومحمية من التطبيق. يرجى تأكيد كلمة المرور الخاصة بك للمتابعة."
         >
-            <Head title="تأكيد كلمة المرور | نَص تيوب" />
+            <Head title="تأكيد كلمة المرور | فرغلي" />
 
             <form onSubmit={submit} className="flex flex-col gap-5 text-right">
                 <div className="space-y-1.5">
-                    <label htmlFor="password" className="block text-xs font-bold text-[#DFE2EE]">
-                        كلمة المرور <span className="text-[#4EDEA3] font-mono text-[11px]">/ Password</span>
+                    <label htmlFor="password" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
+                        كلمة المرور <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Password</span>
                     </label>
                     <input
                         id="password"
@@ -38,7 +38,7 @@ export default function ConfirmPassword() {
                         value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F131C] border border-white/10 text-white font-mono text-sm placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
                     />
                     <InputError message={errors.password} />
                 </div>

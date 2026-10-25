@@ -271,7 +271,7 @@ class DocumentThemeService
             '{{BG_COLOR}}' => $bg,
             '{{TEXT_COLOR}}' => $text,
             '{{HEADER_TEXT}}' => htmlspecialchars($theme->header_text ?? ''),
-            '{{FOOTER_TEXT}}' => htmlspecialchars($theme->footer_text ?? 'تم التوليد والتنسيق بواسطة منصة نَص تيوب الذكية'),
+            '{{FOOTER_TEXT}}' => htmlspecialchars($theme->footer_text ?? 'تم التوليد والتنسيق بواسطة منصة فرغلي الذكية'),
             '{{ORGANIZATION_NAME}}' => htmlspecialchars($theme->tenant->name),
         ];
 
@@ -312,7 +312,7 @@ class DocumentThemeService
             ->translatedFormat('d F Y - h:i A');
 
         $headerText = $theme->header_text ?: '✦ مستند تفريغ وتلخيص ذكي بالذكاء الاصطناعي';
-        $footerText = $theme->footer_text ?: ('تم التوثيق عبر منصة نَص تيوب - ' . htmlspecialchars($theme->tenant->name));
+        $footerText = $theme->footer_text ?: ('تم التوثيق عبر منصة فرغلي - ' . htmlspecialchars($theme->tenant->name));
 
         return <<<HTML
 <!DOCTYPE html>
@@ -913,8 +913,8 @@ HTML;
                 </div>
             </div>
             <div class="doc-logo">
-                نَص تيوب
-                <span>NASSTUBE PRO</span>
+                فرغلي
+                <span>FARGHLY AI</span>
             </div>
         </header>
 
@@ -933,7 +933,7 @@ HTML;
     protected function injectToolbarAndPrintStyles(string $html, Transcript $transcript): string
     {
         $toolbar = <<<HTML
-<div id="nasstube-print-toolbar" style="position: sticky; top: 0; z-index: 999999; background: #0B0F17; color: #FFFFFF; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; direction: rtl;">
+<div id="farghly-print-toolbar" style="position: sticky; top: 0; z-index: 999999; background: #0B0F17; color: #FFFFFF; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; direction: rtl;">
     <div style="display: flex; align-items: center; gap: 12px;">
         <a href="javascript:history.back()" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,0.1); color: #E2E8F0; text-decoration: none;">← العودة للاستوديو</a>
         <span style="font-size: 13px; color: #94A3B8;">قالب HTML مخصص جاهز للطباعة والحفظ كـ PDF</span>
@@ -946,7 +946,7 @@ HTML;
 </div>
 <style>
 @media print {
-    #nasstube-print-toolbar {
+    #farghly-print-toolbar {
         display: none !important;
     }
 }

@@ -167,7 +167,7 @@ class DocumentThemeController extends Controller
         $html = $this->themeService->getSampleHtmlTemplate();
         return response($html, 200, [
             'Content-Type' => 'text/html; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="nasstube-starter-theme.html"',
+            'Content-Disposition' => 'attachment; filename="farghly-starter-theme.html"',
         ]);
     }
 
@@ -188,7 +188,7 @@ class DocumentThemeController extends Controller
             $transcript = new Transcript([
                 'tenant_id' => $tenant->id,
                 'title' => 'معاينة القالب: استراتيجيات التسويق وصناعة المحتوى لعام 2026',
-                'channel_name' => 'أكاديمية نَص تيوب للتقنية',
+                'channel_name' => 'أكاديمية فرغلي التعليمية',
                 'video_url' => 'https://youtube.com/watch?v=preview',
                 'duration_seconds' => 1845,
                 'summary_generated_at' => now(),

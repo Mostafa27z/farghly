@@ -1,8 +1,8 @@
-# Obsidian Studio Design System (نَص تيوب | NassTube)
+# Obsidian Studio Design System (فرغلي | Farghly)
 
 **Project ID**: `6138947229921144934`  
 **Screen ID**: `73b74b99f73747ccb713b1ef39ea021b`  
-**Title**: نَص تيوب | NassTube - الصفحة الرئيسية الفاخرة  
+**Title**: فرغلي | Farghly - الصفحة الرئيسية الفاخرة  
 
 ---
 

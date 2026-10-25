@@ -1,10 +1,23 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="dark">
+<html lang="ar" dir="rtl">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            (function() {
+                try {
+                    const appearance = localStorage.getItem('appearance') || 'system';
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    if (appearance === 'dark' || (appearance === 'system' && prefersDark)) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                } catch (e) {}
+            })();
+        </script>
 
-        <title inertia>{{ config('app.name', 'نَص تيوب | NassTube') }}</title>
+        <title inertia>{{ config('app.name', 'فرغلي | Farghly') }}</title>
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

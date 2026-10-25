@@ -17,7 +17,7 @@ export default function VerifyEmail({ status }: { status?: string }) {
             title="تأكيد البريد الإلكتروني"
             description="شكراً لانضمامك! يرجى التحقق من صندوق الوارد الخاص بك والنقر على الرابط المرسل لتفعيل حسابك بالكامل."
         >
-            <Head title="تأكيد البريد الإلكتروني | نَص تيوب" />
+            <Head title="تأكيد البريد الإلكتروني | فرغلي" />
 
             {status === 'verification-link-sent' && (
                 <div className="mb-4 text-center text-xs font-mono text-[#4EDEA3] bg-[#10B981]/10 p-3 rounded-xl border border-[#10B981]/30">
@@ -44,8 +44,8 @@ export default function VerifyEmail({ status }: { status?: string }) {
                     )}
                 </button>
 
-                <div className="pt-4 border-t border-white/10">
-                    <TextLink href={route('logout')} method="post" as="button" className="text-xs text-[#BBCAFF] hover:text-white transition-colors">
+                <div className="pt-4 border-t border-slate-200 dark:border-white/10">
+                    <TextLink href={route('logout')} method="post" as="button" className="text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors">
                         تسجيل الخروج
                     </TextLink>
                 </div>

@@ -32,14 +32,14 @@ export default function Register() {
             title="إنشاء حساب عضو جديد"
             description="أدخل بياناتك للانضمام إلى مساحة عمل مؤسستك وبدء تفريغ المحتوى."
         >
-            <Head title="تسجيل حساب جديد | نَص تيوب" />
+            <Head title="تسجيل حساب جديد | فرغلي" />
 
             <form className="flex flex-col gap-4 text-right" onSubmit={submit}>
                 <div className="space-y-3.5">
                     {/* Name */}
                     <div className="space-y-1">
-                        <label htmlFor="name" className="block text-xs font-bold text-[#DFE2EE]">
-                            الاسم الكامل <span className="text-[#4EDEA3] font-mono text-[11px]">/ Full Name</span>
+                        <label htmlFor="name" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
+                            الاسم الكامل <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Full Name</span>
                         </label>
                         <input
                             id="name"
@@ -52,15 +52,15 @@ export default function Register() {
                             onChange={(e) => setData('name', e.target.value)}
                             disabled={processing}
                             placeholder="محمد علي"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F131C] border border-white/10 text-white font-sans text-sm placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-sans text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
                         />
                         <InputError message={errors.name} />
                     </div>
 
                     {/* Email */}
                     <div className="space-y-1">
-                        <label htmlFor="email" className="block text-xs font-bold text-[#DFE2EE]">
-                            البريد الإلكتروني <span className="text-[#4EDEA3] font-mono text-[11px]">/ Email</span>
+                        <label htmlFor="email" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
+                            البريد الإلكتروني <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Email</span>
                         </label>
                         <input
                             id="email"
@@ -72,15 +72,15 @@ export default function Register() {
                             onChange={(e) => setData('email', e.target.value)}
                             disabled={processing}
                             placeholder="name@company.com"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F131C] border border-white/10 text-white font-mono text-sm placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
                         />
                         <InputError message={errors.email} />
                     </div>
 
                     {/* Password */}
                     <div className="space-y-1">
-                        <label htmlFor="password" className="block text-xs font-bold text-[#DFE2EE]">
-                            كلمة المرور <span className="text-[#4EDEA3] font-mono text-[11px]">/ Password</span>
+                        <label htmlFor="password" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
+                            كلمة المرور <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Password</span>
                         </label>
                         <input
                             id="password"
@@ -92,15 +92,15 @@ export default function Register() {
                             onChange={(e) => setData('password', e.target.value)}
                             disabled={processing}
                             placeholder="••••••••"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F131C] border border-white/10 text-white font-mono text-sm placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
                         />
                         <InputError message={errors.password} />
                     </div>
 
                     {/* Confirm Password */}
                     <div className="space-y-1">
-                        <label htmlFor="password_confirmation" className="block text-xs font-bold text-[#DFE2EE]">
-                            تأكيد كلمة المرور <span className="text-[#4EDEA3] font-mono text-[11px]">/ Confirm</span>
+                        <label htmlFor="password_confirmation" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
+                            تأكيد كلمة المرور <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Confirm</span>
                         </label>
                         <input
                             id="password_confirmation"
@@ -112,7 +112,7 @@ export default function Register() {
                             onChange={(e) => setData('password_confirmation', e.target.value)}
                             disabled={processing}
                             placeholder="••••••••"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F131C] border border-white/10 text-white font-mono text-sm placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
                         />
                         <InputError message={errors.password_confirmation} />
                     </div>
@@ -138,9 +138,9 @@ export default function Register() {
                     </button>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10 text-center text-xs text-[#BBCAFF]">
+                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/10 text-center text-xs text-slate-600 dark:text-[#BBCAFF]">
                     <span>لديك حساب مفعل بالفعل؟ </span>
-                    <TextLink href={route('login')} className="text-[#4EDEA3] font-bold hover:underline" tabIndex={6}>
+                    <TextLink href={route('login')} className="text-emerald-600 dark:text-[#4EDEA3] font-bold hover:underline" tabIndex={6}>
                         تسجيل الدخول
                     </TextLink>
                 </div>

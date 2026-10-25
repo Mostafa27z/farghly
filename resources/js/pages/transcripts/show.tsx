@@ -1,3 +1,4 @@
+import ThemeToggle from '@/components/theme-toggle';
 import { Head, Link, useForm } from '@inertiajs/react';
 import React, { useRef, useState } from 'react';
 
@@ -144,16 +145,16 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
     ];
 
     return (
-        <div dir="rtl" className="min-h-screen bg-[#0A0E16] text-[#DFE2EE] font-sans antialiased flex flex-col selection:bg-[#10B981] selection:text-[#003824]">
+        <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-[#0A0E16] text-slate-800 dark:text-[#DFE2EE] font-sans antialiased flex flex-col selection:bg-[#10B981] selection:text-[#003824] transition-colors">
             <Head title={`استوديو التفريغ | ${transcript.title}`} />
 
             {/* Top Studio Bar */}
-            <header className="sticky top-0 z-40 bg-[#0F131C]/95 backdrop-blur-md border-b border-white/10 px-6 py-3.5 shadow-lg">
+            <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0F131C]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 py-3.5 shadow-xs dark:shadow-lg">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <Link
                             href={route('dashboard')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C2028] border border-white/10 text-xs text-[#BBCAFF] hover:text-white hover:bg-white/10 transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                         >
                             <span className="material-symbols-outlined text-base">arrow_forward</span>
                             <span>العودة للمكتبة</span>
@@ -161,22 +162,25 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                         <Link
                             href={route('themes.index')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10B981]/10 border border-[#10B981]/25 hover:bg-[#10B981]/20 text-xs font-bold text-[#4EDEA3] transition-all"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-[#10B981]/10 border border-emerald-200 dark:border-[#10B981]/25 text-xs font-bold text-emerald-700 dark:text-[#4EDEA3] transition-all"
                         >
                             <span className="material-symbols-outlined text-base">palette</span>
                             <span>الهوية والقوالب</span>
                         </Link>
 
-                        <div className="h-5 w-[1px] bg-white/20 hidden md:block" />
+                        <div className="h-5 w-[1px] bg-slate-200 dark:bg-white/20 hidden md:block" />
 
                         <div className="flex flex-col text-right">
-                            <h1 className="text-sm font-bold text-white max-w-md truncate">{transcript.title}</h1>
-                            <span className="text-[11px] text-[#BBCAFF]">{transcript.channel_name}</span>
+                            <h1 className="text-sm font-bold text-slate-900 dark:text-white max-w-md truncate">{transcript.title}</h1>
+                            <span className="text-[11px] text-slate-500 dark:text-[#BBCAFF]">{transcript.channel_name}</span>
                         </div>
                     </div>
 
                     {/* Actions Bar */}
                     <div className="flex flex-wrap items-center gap-2">
+                        {/* Theme Toggle Button */}
+                        <ThemeToggle />
+
                         {/* Gemini Summary Button */}
                         <button
                             type="button"
@@ -193,7 +197,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                 href={route('transcripts.document', { transcript: transcript.id, theme: docTheme })}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F59E0B]/15 border border-[#F59E0B]/40 hover:bg-[#F59E0B]/25 text-xs text-[#FFB95F] font-bold transition-all"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-[#F59E0B]/15 border border-amber-300 dark:border-[#F59E0B]/40 hover:bg-amber-100 dark:hover:bg-[#F59E0B]/25 text-xs text-amber-700 dark:text-[#FFB95F] font-bold transition-all"
                             >
                                 <span className="material-symbols-outlined text-base">picture_as_pdf</span>
                                 <span>طباعة / حفظ كـ PDF</span>
@@ -203,9 +207,9 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         <button
                             type="button"
                             onClick={copyFullText}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C2028] border border-white/10 hover:border-white/20 text-xs text-white transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-white transition-all cursor-pointer"
                         >
-                            <span className="material-symbols-outlined text-[#4EDEA3] text-sm">
+                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">
                                 {copied ? 'check' : 'content_copy'}
                             </span>
                             <span>{copied ? 'تم النسخ!' : 'نسخ النص'}</span>
@@ -214,7 +218,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         {/* Export Dropdown / Subtitle links */}
                         <a
                             href={route('transcripts.export.srt', transcript.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-xs text-[#4EDEA3] font-mono font-bold transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-emerald-700 dark:text-[#4EDEA3] font-mono font-bold transition-all"
                             title="تحميل ملف الترجمة للبرامج"
                         >
                             .SRT
@@ -222,7 +226,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                         <a
                             href={route('transcripts.export.vtt', transcript.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-xs text-[#C0C1FF] font-mono font-bold transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-indigo-700 dark:text-[#C0C1FF] font-mono font-bold transition-all"
                         >
                             .VTT
                         </a>
@@ -234,7 +238,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
             <main className="max-w-7xl mx-auto px-6 py-6 flex-1 w-full flex flex-col lg:flex-row gap-6">
                 {/* Left Side (RTL Right): Embedded Video & Metadata */}
                 <div className="lg:w-5/12 flex flex-col gap-4">
-                    <div className="rounded-2xl overflow-hidden bg-black border border-white/10 shadow-2xl aspect-video sticky top-24">
+                    <div className="rounded-2xl overflow-hidden bg-black border border-slate-200 dark:border-white/10 shadow-2xl aspect-video sticky top-24">
                         <iframe
                             ref={iframeRef}
                             src={`https://www.youtube.com/embed/${transcript.youtube_id}`}
@@ -245,25 +249,25 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         />
                     </div>
 
-                    <div className="p-4 rounded-2xl bg-[#141822] border border-white/10 flex flex-col gap-3">
+                    <div className="p-4 rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 flex flex-col gap-3 shadow-xs">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-[#BBCAFF]">مدة الفيديو:</span>
-                            <span className="font-mono text-white font-bold">{formatDuration(transcript.duration_seconds)}</span>
+                            <span className="text-slate-500 dark:text-[#BBCAFF]">مدة الفيديو:</span>
+                            <span className="font-mono text-slate-900 dark:text-white font-bold">{formatDuration(transcript.duration_seconds)}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-[#BBCAFF]">لغة التفريغ الأصلية:</span>
-                            <span className="font-mono px-2 py-0.5 rounded bg-[#10B981]/20 text-[#4EDEA3] font-bold uppercase">
+                            <span className="text-slate-500 dark:text-[#BBCAFF]">لغة التفريغ الأصلية:</span>
+                            <span className="font-mono px-2 py-0.5 rounded bg-emerald-50 dark:bg-[#10B981]/20 text-emerald-700 dark:text-[#4EDEA3] font-bold uppercase">
                                 {transcript.language}
                             </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-[#BBCAFF]">عدد المقاطع النصية:</span>
-                            <span className="font-mono text-white">{segments.length} مقطع</span>
+                            <span className="text-slate-500 dark:text-[#BBCAFF]">عدد المقاطع النصية:</span>
+                            <span className="font-mono text-slate-900 dark:text-white">{segments.length} مقطع</span>
                         </div>
                         {transcript.summary_generated_at && (
-                            <div className="flex items-center justify-between text-xs pt-2 border-t border-white/5">
-                                <span className="text-[#BBCAFF]">آخر تلخيص بالذكاء الاصطناعي:</span>
-                                <span className="font-mono text-[#4EDEA3] text-[11px]">
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-white/5">
+                                <span className="text-slate-500 dark:text-[#BBCAFF]">آخر تلخيص بالذكاء الاصطناعي:</span>
+                                <span className="font-mono text-emerald-600 dark:text-[#4EDEA3] text-[11px]">
                                     {new Date(transcript.summary_generated_at).toLocaleDateString('ar-SA')}
                                 </span>
                             </div>
@@ -274,15 +278,15 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                 {/* Right Side (RTL Left): Tabbed Workspace (Transcript vs AI Summary) */}
                 <div className="lg:w-7/12 flex flex-col gap-3">
                     {/* Workspace Tabs */}
-                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10">
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('transcript')}
                                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                                     activeTab === 'transcript'
-                                        ? 'bg-[#1C2028] text-[#4EDEA3] border border-[#10B981]/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                                        : 'text-[#BBCAFF] hover:text-white hover:bg-white/5'
+                                        ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
+                                        : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-base">subtitles</span>
@@ -294,8 +298,8 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                 onClick={() => setActiveTab('summary')}
                                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                                     activeTab === 'summary'
-                                        ? 'bg-[#1C2028] text-[#4EDEA3] border border-[#10B981]/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                                        : 'text-[#BBCAFF] hover:text-white hover:bg-white/5'
+                                        ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
+                                        : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-base">auto_awesome</span>
@@ -311,7 +315,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                 <button
                                     type="button"
                                     onClick={copySummary}
-                                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-[#BBCAFF] hover:text-white transition-all"
+                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-xs text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
                                     title="نسخ نص الملخص"
                                 >
                                     <span className="material-symbols-outlined text-sm">
@@ -336,7 +340,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         <div className="space-y-3">
                             {/* Search inside transcript */}
                             <div className="relative">
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 material-symbols-outlined text-lg">
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 material-symbols-outlined text-lg">
                                     search
                                 </span>
                                 <input
@@ -344,14 +348,14 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="ابحث في نص هذا الفيديو..."
-                                    className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-[#141822] border border-white/10 text-xs text-white placeholder:text-white/30 focus:border-[#10B981] outline-none"
+                                    className="w-full pl-3 pr-10 py-2.5 rounded-xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] outline-none shadow-xs"
                                 />
                             </div>
 
                             {/* Segments Stream */}
                             <div className="space-y-2.5 max-h-[calc(100vh-230px)] overflow-y-auto pl-1">
                                 {filteredSegments.length === 0 ? (
-                                    <div className="p-8 text-center rounded-xl bg-[#141822] border border-white/10 text-xs text-[#BBCAFF]">
+                                    <div className="p-8 text-center rounded-xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 text-xs text-slate-500 dark:text-[#BBCAFF]">
                                         لم يتم العثور على نتائج تطابق كلمة البحث.
                                     </div>
                                 ) : (
@@ -364,8 +368,8 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                                 onClick={() => seekTo(seg.offset_seconds)}
                                                 className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3 text-right ${
                                                     isActive
-                                                        ? 'bg-[#10B981]/15 border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                                        : 'bg-[#141822] border-white/5 hover:border-[#10B981]/30 hover:bg-[#181C24]'
+                                                        ? 'bg-emerald-50 dark:bg-[#10B981]/15 border-emerald-500 dark:border-[#10B981] shadow-xs'
+                                                        : 'bg-white dark:bg-[#141822] border-slate-200 dark:border-white/5 hover:border-emerald-500/30 hover:bg-slate-50 dark:hover:bg-[#181C24]'
                                                 }`}
                                             >
                                                 <button
@@ -373,13 +377,13 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                                     className={`px-2.5 py-1 rounded font-mono text-xs font-bold shrink-0 transition-colors ${
                                                         isActive
                                                             ? 'bg-[#10B981] text-[#003824]'
-                                                            : 'bg-[#0A0E16] text-[#4EDEA3] border border-[#10B981]/25 hover:bg-[#10B981] hover:text-[#003824]'
+                                                            : 'bg-slate-100 dark:bg-[#0A0E16] text-emerald-700 dark:text-[#4EDEA3] border border-slate-200 dark:border-[#10B981]/25 hover:bg-[#10B981] hover:text-[#003824]'
                                                     }`}
                                                 >
                                                     {seg.timestamp_formatted}
                                                 </button>
 
-                                                <p className="text-sm text-white leading-relaxed flex-1 select-text">
+                                                <p className="text-sm text-slate-800 dark:text-white leading-relaxed flex-1 select-text">
                                                     {seg.text}
                                                 </p>
                                             </div>
@@ -394,22 +398,22 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                     {activeTab === 'summary' && (
                         <div className="space-y-4">
                             {transcript.summary_html ? (
-                                <div className="rounded-2xl bg-[#141822] border border-white/10 p-6 shadow-xl max-h-[calc(100vh-230px)] overflow-y-auto">
+                                <div className="rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 p-6 shadow-xs dark:shadow-xl max-h-[calc(100vh-230px)] overflow-y-auto">
                                     {/* Document Header Controls */}
-                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-4 mb-6 border-b border-white/10">
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-4 mb-6 border-b border-slate-200 dark:border-white/10">
                                         <div className="flex items-center gap-2">
                                             <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
-                                            <span className="text-xs font-bold text-white">
+                                            <span className="text-xs font-bold text-slate-900 dark:text-white">
                                                 النمط: {summaryPresets.find(p => p.id === transcript.summary_style)?.name || 'ملخص تنفيذي'}
                                             </span>
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[11px] text-[#BBCAFF]">تصميم المستند للطباعة:</span>
+                                            <span className="text-[11px] text-slate-500 dark:text-[#BBCAFF]">تصميم المستند للطباعة:</span>
                                             <select
                                                 value={docTheme}
                                                 onChange={(e) => setDocTheme(e.target.value)}
-                                                className="bg-[#0F131C] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white outline-none focus:border-[#10B981]"
+                                                className="bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
                                             >
                                                 {themes.length > 0 && (
                                                     <optgroup label="قوالب المؤسسة المخصصة">
@@ -426,7 +430,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                             </select>
                                             <Link
                                                 href={route('themes.index')}
-                                                className="text-[11px] text-[#4EDEA3] hover:underline font-bold mr-1"
+                                                className="text-[11px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold mr-1"
                                                 title="تخصيص الهوية والشعار"
                                             >
                                                 تخصيص
@@ -436,28 +440,28 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                                     {/* Rendered Semantic HTML Summary */}
                                     <div
-                                        className="prose prose-invert max-w-none text-right leading-relaxed text-sm text-[#DFE2EE]
-                                                   [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#4EDEA3] [&_h2]:border-r-4 [&_h2]:border-[#10B981] [&_h2]:pr-3 [&_h2]:mt-6 [&_h2]:mb-3
-                                                   [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-white [&_h3]:mt-4 [&_h3]:mb-2
-                                                   [&_p]:mb-3 [&_p]:text-justify [&_p]:text-white/90
+                                        className="prose dark:prose-invert max-w-none text-right leading-relaxed text-sm text-slate-800 dark:text-[#DFE2EE]
+                                                   [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-emerald-700 dark:[&_h2]:text-[#4EDEA3] [&_h2]:border-r-4 [&_h2]:border-[#10B981] [&_h2]:pr-3 [&_h2]:mt-6 [&_h2]:mb-3
+                                                   [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-white [&_h3]:mt-4 [&_h3]:mb-2
+                                                   [&_p]:mb-3 [&_p]:text-justify [&_p]:text-slate-700 dark:[&_p]:text-white/90
                                                    [&_ul]:list-disc [&_ul]:pr-5 [&_ul]:mb-4 [&_li]:mb-1.5
-                                                   [&_blockquote]:border-r-4 [&_blockquote]:border-[#10B981] [&_blockquote]:bg-white/5 [&_blockquote]:p-3 [&_blockquote]:rounded-l-lg [&_blockquote]:my-4 [&_blockquote]:italic
-                                                   [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-[#1C2028] [&_th]:p-2.5 [&_th]:border [&_th]:border-white/10 [&_th]:text-[#4EDEA3]
-                                                   [&_td]:p-2 [&_td]:border [&_td]:border-white/10 [&_td]:text-xs"
+                                                   [&_blockquote]:border-r-4 [&_blockquote]:border-[#10B981] [&_blockquote]:bg-slate-50 dark:[&_blockquote]:bg-white/5 [&_blockquote]:p-3 [&_blockquote]:rounded-l-lg [&_blockquote]:my-4 [&_blockquote]:italic
+                                                   [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 dark:[&_th]:bg-[#1C2028] [&_th]:p-2.5 [&_th]:border [&_th]:border-slate-200 dark:[&_th]:border-white/10 [&_th]:text-emerald-700 dark:[&_th]:text-[#4EDEA3]
+                                                   [&_td]:p-2 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-white/10 [&_td]:text-xs"
                                         dangerouslySetInnerHTML={{ __html: transcript.summary_html }}
                                     />
                                 </div>
                             ) : (
                                 /* No Summary Yet CTA Card */
-                                <div className="p-10 rounded-2xl bg-gradient-to-tr from-[#141822] to-[#1C2028] border border-white/10 text-center flex flex-col items-center shadow-xl">
-                                    <div className="w-16 h-16 rounded-2xl bg-[#10B981]/15 text-[#4EDEA3] flex items-center justify-center mb-4">
+                                <div className="p-10 rounded-2xl bg-white dark:bg-gradient-to-tr dark:from-[#141822] dark:to-[#1C2028] border border-slate-200 dark:border-white/10 text-center flex flex-col items-center shadow-xs dark:shadow-xl">
+                                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] flex items-center justify-center mb-4">
                                         <span className="material-symbols-outlined text-4xl">auto_awesome</span>
                                     </div>
 
-                                    <h3 className="text-xl font-extrabold text-white mb-2">
+                                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
                                         توليد ملخص تنفيذي ومستند PDF بالذكاء الاصطناعي
                                     </h3>
-                                    <p className="text-xs text-[#BBCAFF] max-w-md mb-6 leading-relaxed">
+                                    <p className="text-xs text-slate-500 dark:text-[#BBCAFF] max-w-md mb-6 leading-relaxed">
                                         يقوم نموذج Gemini بتحليل كامل مدة هذا الفيديو ({formatDuration(transcript.duration_seconds)}) واستخراج أهم الأفكار وتنسيقها في شكل مستند رسمي جاهز للتحميل والطباعة.
                                     </p>
 
@@ -478,17 +482,17 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
             {/* AI Summary Configuration Modal */}
             {showSummaryModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-                    <div className="w-full max-w-xl rounded-3xl bg-[#141822] border border-white/15 p-6 sm:p-8 shadow-2xl relative text-right">
-                        <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md">
+                    <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/15 p-6 sm:p-8 shadow-2xl relative text-right">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-6">
                             <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[#4EDEA3] text-2xl">auto_awesome</span>
-                                <h3 className="text-lg font-bold text-white">إعدادات التلخيص الذكي وتصميم المستند</h3>
+                                <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-2xl">auto_awesome</span>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">إعدادات التلخيص الذكي وتصميم المستند</h3>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowSummaryModal(false)}
-                                className="text-white/40 hover:text-white transition-colors"
+                                className="text-slate-400 hover:text-slate-600 dark:text-white/40 dark:hover:text-white transition-colors cursor-pointer"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
@@ -497,7 +501,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         <form onSubmit={handleGenerateSummary} className="space-y-5">
                             {/* 1. Style Presets */}
                             <div>
-                                <label className="block text-xs font-bold text-[#DFE2EE] mb-2.5">
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-2.5">
                                     اختر نمط التلخيص:
                                 </label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -509,18 +513,18 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                                 onClick={() => setSummaryData('style', preset.id)}
                                                 className={`p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-2.5 ${
                                                     isSelected
-                                                        ? 'bg-[#10B981]/15 border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                                                        : 'bg-[#0F131C] border-white/5 hover:border-white/20'
+                                                        ? 'bg-emerald-50 dark:bg-[#10B981]/15 border-emerald-500 dark:border-[#10B981] shadow-xs'
+                                                        : 'bg-slate-50 dark:bg-[#0F131C] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                                                 }`}
                                             >
-                                                <span className={`material-symbols-outlined text-xl ${isSelected ? 'text-[#4EDEA3]' : 'text-white/40'}`}>
+                                                <span className={`material-symbols-outlined text-xl ${isSelected ? 'text-emerald-600 dark:text-[#4EDEA3]' : 'text-slate-400 dark:text-white/40'}`}>
                                                     {preset.icon}
                                                 </span>
                                                 <div className="flex flex-col">
-                                                    <span className={`text-xs font-bold ${isSelected ? 'text-[#4EDEA3]' : 'text-white'}`}>
+                                                    <span className={`text-xs font-bold ${isSelected ? 'text-emerald-700 dark:text-[#4EDEA3]' : 'text-slate-800 dark:text-white'}`}>
                                                         {preset.name}
                                                     </span>
-                                                    <span className="text-[10px] text-[#BBCAFF] leading-normal">
+                                                    <span className="text-[10px] text-slate-500 dark:text-[#BBCAFF] leading-normal">
                                                         {preset.desc}
                                                     </span>
                                                 </div>
@@ -533,12 +537,12 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                             {/* 2. Visual Theme Picker */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-xs font-bold text-[#DFE2EE]">
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
                                         طابع وتصميم مستند الـ PDF المطبوع:
                                     </label>
                                     <Link
                                         href={route('themes.index')}
-                                        className="text-[10px] text-[#4EDEA3] hover:underline font-bold"
+                                        className="text-[10px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold"
                                         target="_blank"
                                     >
                                         + إدارة القوالب والشعار
@@ -555,8 +559,8 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                             }}
                                             className={`p-2.5 rounded-xl border text-center transition-all text-xs font-medium cursor-pointer ${
                                                 docTheme === t.id
-                                                    ? 'bg-[#1C2028] border-[#10B981] text-[#4EDEA3] shadow-md font-bold'
-                                                    : 'bg-[#0F131C] border-white/10 text-[#BBCAFF] hover:border-white/20'
+                                                    ? 'bg-emerald-50 dark:bg-[#1C2028] border-emerald-500 dark:border-[#10B981] text-emerald-800 dark:text-[#4EDEA3] shadow-xs font-bold'
+                                                    : 'bg-slate-50 dark:bg-[#0F131C] border-slate-200 dark:border-white/10 text-slate-700 dark:text-[#BBCAFF] hover:border-slate-300 dark:hover:border-white/20'
                                             }`}
                                         >
                                             <div className="w-3 h-3 rounded-full mx-auto mb-1.5" style={{ backgroundColor: t.color }} />
@@ -569,7 +573,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                             {/* 3. Custom Prompt Instructions */}
                             <div>
-                                <label className="block text-xs font-bold text-[#DFE2EE] mb-1.5">
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
                                     توجيهات إضافية مخصصة للذكاء الاصطناعي (اختياري):
                                 </label>
                                 <textarea
@@ -577,16 +581,16 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                     onChange={(e) => setSummaryData('prompt', e.target.value)}
                                     placeholder="مثال: ركّز على ذكر كافة التواريخ والأرقام، أو لخّص النقاط القانونية بشكل جدول مقارنات..."
                                     rows={3}
-                                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#0F131C] border border-white/10 text-white text-xs placeholder:text-white/30 focus:border-[#10B981] outline-none"
+                                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] outline-none"
                                 />
                             </div>
 
                             {/* Submit & Cancel */}
-                            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-white/10">
                                 <button
                                     type="button"
                                     onClick={() => setShowSummaryModal(false)}
-                                    className="px-4 py-2.5 rounded-xl text-xs text-[#BBCAFF] hover:text-white transition-colors"
+                                    className="px-4 py-2.5 rounded-xl text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
                                     disabled={summarizing}
                                 >
                                     إلغاء

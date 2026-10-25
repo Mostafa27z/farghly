@@ -505,8 +505,8 @@ PROMPT;
                 </div>
             </div>
             <div class="doc-logo">
-                نَص تيوب
-                <span>NASSTUBE PRO</span>
+                فرغلي
+                <span>FARGHLY AI</span>
             </div>
         </header>
 
