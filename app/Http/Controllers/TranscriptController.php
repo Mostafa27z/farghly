@@ -228,6 +228,12 @@ class TranscriptController extends Controller
             $type = 'summary';
         }
 
+        if (!class_exists(\PhpOffice\PhpWord\PhpWord::class)) {
+            return back()->withErrors([
+                'error' => 'حزمة تصدير Word (PhpOffice\PhpWord) لم يتم تثبيتها بعد على السيرفر. يرجى تشغيل الأمر: composer install',
+            ]);
+        }
+
         // Auto-generate if summary or proofread is requested but not yet generated
         if ($type === 'proofread' && empty($transcript->proofread_html)) {
             $proofreadResult = $gemini->proofread($transcript);
