@@ -174,6 +174,18 @@ class YouTubeTranscriptService
 
     protected function wasBlockedByYouTube(): bool
     {
+        // If Supadata was queried and verified that the video has no transcript,
+        // it is NOT an IP block.
+        foreach ($this->diagnostics as $d) {
+            if (($d['client'] ?? '') === 'FALLBACK_API (Supadata)') {
+                $status = $d['playability_status'] ?? '';
+                $http = (int) ($d['http_status'] ?? 0);
+                if ($status === 'NO_TRANSCRIPT' || $http === 206 || $http === 404) {
+                    return false;
+                }
+            }
+        }
+
         foreach ($this->diagnostics as $d) {
             $status = strtoupper($d['playability_status'] ?? '');
             $reason = strtolower($d['reason'] ?? '');
@@ -470,12 +482,27 @@ class YouTubeTranscriptService
 
             if (!$response->successful()) {
                 Log::warning('Fallback transcript API failed', ['status' => $response->status(), 'body' => $response->body()]);
+                $this->diagnostics[] = [
+                    'client' => 'FALLBACK_API (Supadata)',
+                    'http_status' => $response->status(),
+                    'playability_status' => in_array($response->status(), [206, 404], true) ? 'NO_TRANSCRIPT' : 'ERROR',
+                    'reason' => 'Supadata returned HTTP ' . $response->status(),
+                    'tracks' => 0,
+                    'error' => substr($response->body(), 0, 100),
+                ];
                 return null;
             }
 
             $data = $response->json();
             $items = $data['content'] ?? [];
             if (!is_array($items) || empty($items)) {
+                $this->diagnostics[] = [
+                    'client' => 'FALLBACK_API (Supadata)',
+                    'http_status' => $response->status(),
+                    'playability_status' => 'NO_TRANSCRIPT',
+                    'reason' => 'No transcripts available on YouTube for this video',
+                    'tracks' => 0,
+                ];
                 return null;
             }
 
@@ -504,6 +531,13 @@ class YouTubeTranscriptService
             }
 
             if (empty($segments)) {
+                $this->diagnostics[] = [
+                    'client' => 'FALLBACK_API (Supadata)',
+                    'http_status' => $response->status(),
+                    'playability_status' => 'NO_TRANSCRIPT',
+                    'reason' => 'Transcript items contained no readable text',
+                    'tracks' => 0,
+                ];
                 return null;
             }
 
