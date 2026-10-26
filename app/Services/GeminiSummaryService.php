@@ -132,48 +132,27 @@ class GeminiSummaryService
         }
 
         try {
-            $chunks = $this->splitTextForProofreading($fullText, 14000);
+            // Drop bare timestamp lines (e.g. "00:08") so they don't pollute the proofread text.
+            $fullText = trim(preg_replace('/^\s*(?:\d{1,2}:)?\d{1,2}:\d{2}\s*$/m', '', $fullText));
+            $fullText = preg_replace("/\n{3,}/", "\n\n", $fullText);
+
+            // Small chunks: diacritized Arabic is very token-heavy, large chunks get truncated.
+            $chunks = $this->splitTextForProofreading($fullText, 3500);
             $totalChunks = count($chunks);
             $combinedHtml = '';
 
             foreach ($chunks as $index => $chunkText) {
-                $partNum = $index + 1;
-                $prompt = $this->buildProofreadPrompt($transcript, $chunkText, $partNum, $totalChunks, $customInstructions);
-                $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}";
+                $chunkHtml = $this->proofreadChunk($transcript, $chunkText, $index + 1, $totalChunks, $customInstructions);
 
-                $response = Http::timeout(120)
-                    ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post($apiUrl, [
-                        'contents' => [
-                            [
-                                'parts' => [
-                                    ['text' => $prompt],
-                                ],
-                            ],
-                        ],
-                        'generationConfig' => [
-                            'temperature' => 0.3,
-                            'maxOutputTokens' => 8192,
-                        ],
-                    ]);
-
-                if (!$response->successful()) {
-                    Log::error('Gemini proofread API call failed', [
-                        'status' => $response->status(),
-                        'error' => $response->body(),
-                    ]);
-
+                if ($chunkHtml === null) {
                     return [
                         'success' => false,
-                        'message_ar' => 'فشل الاتصال بخدمة الذكاء الاصطناعي أثناء التدقيق اللغوي: ' . ($response->json()['error']['message'] ?? 'خطأ غير معروف'),
+                        'message_ar' => 'فشل الاتصال بخدمة الذكاء الاصطناعي أثناء التدقيق اللغوي (الجزء ' . ($index + 1) . ' من ' . $totalChunks . '). حاول مرة أخرى.',
                         'message_en' => 'Gemini proofread request failed.',
                     ];
                 }
 
-                $rawText = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '';
-                $chunkHtml = $this->cleanHtmlOutput($rawText);
-
-                if (!empty($chunkHtml)) {
+                if ($chunkHtml !== '') {
                     $combinedHtml .= ($combinedHtml ? "\n\n" : '') . $chunkHtml;
                 }
             }
@@ -200,6 +179,88 @@ class GeminiSummaryService
                 'message_en' => 'An exception occurred during proofreading.',
             ];
         }
+    }
+
+    /**
+     * Proofread one chunk. Detects truncation (MAX_TOKENS or low coverage) and
+     * automatically splits the chunk in half and retries. Returns null on API failure.
+     */
+    protected function proofreadChunk(
+        Transcript $transcript,
+        string $chunkText,
+        int $partNum,
+        int $totalParts,
+        ?string $customInstructions,
+        int $depth = 0
+    ): ?string {
+        $prompt = $this->buildProofreadPrompt($transcript, $chunkText, $partNum, $totalParts, $customInstructions);
+        $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}";
+
+        $generationConfig = [
+            'temperature' => 0.2,
+            'maxOutputTokens' => 32768,
+        ];
+        // Thinking tokens eat into maxOutputTokens on Gemini 2.5 flash models; not needed for proofreading.
+        if (stripos($this->model, 'flash') !== false) {
+            $generationConfig['thinkingConfig'] = ['thinkingBudget' => 0];
+        }
+
+        $response = Http::timeout(180)
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->post($apiUrl, [
+                'contents' => [['parts' => [['text' => $prompt]]]],
+                'generationConfig' => $generationConfig,
+            ]);
+
+        if (!$response->successful()) {
+            Log::error('Gemini proofread API call failed', [
+                'status' => $response->status(),
+                'error' => $response->body(),
+            ]);
+            return null;
+        }
+
+        $candidate = $response->json()['candidates'][0] ?? [];
+        $rawText = '';
+        foreach (($candidate['content']['parts'] ?? []) as $part) {
+            if (empty($part['thought'])) {
+                $rawText .= $part['text'] ?? '';
+            }
+        }
+        $html = $this->cleanHtmlOutput($rawText);
+        $finishReason = $candidate['finishReason'] ?? 'UNKNOWN';
+
+        // Coverage: compare letters only (ignore diacritics, tags, punctuation, whitespace).
+        $letters = fn (string $s) => mb_strlen(preg_replace('/[^\p{L}]/u', '', $s));
+        $inLen = $letters($chunkText);
+        $outLen = $letters(strip_tags($html));
+        $ratio = $inLen > 0 ? $outLen / $inLen : 1;
+
+        $truncated = $finishReason === 'MAX_TOKENS' || $ratio < 0.6;
+
+        Log::info('Gemini proofread chunk', [
+            'part' => $partNum, 'depth' => $depth, 'finish' => $finishReason,
+            'in_letters' => $inLen, 'out_letters' => $outLen, 'ratio' => round($ratio, 2),
+        ]);
+
+        if ($truncated && $depth < 3 && mb_strlen($chunkText) > 400) {
+            $halves = $this->splitTextForProofreading($chunkText, (int) ceil(mb_strlen($chunkText) / 2) + 50);
+            if (count($halves) < 2) {
+                $mid = (int) floor(mb_strlen($chunkText) / 2);
+                $halves = [trim(mb_substr($chunkText, 0, $mid)), trim(mb_substr($chunkText, $mid))];
+            }
+            $out = [];
+            foreach ($halves as $half) {
+                $r = $this->proofreadChunk($transcript, $half, $partNum, $totalParts, $customInstructions, $depth + 1);
+                if ($r === null) {
+                    return null;
+                }
+                $out[] = $r;
+            }
+            return trim(implode("\n\n", array_filter($out)));
+        }
+
+        return $html;
     }
 
     /**

@@ -233,17 +233,17 @@ class TranscriptController extends Controller
             $proofreadResult = $gemini->proofread($transcript);
             if ($proofreadResult['success']) {
                 $transcript->update([
-                    'proofread_html' => $proofreadResult['html'],
-                    'proofread_text' => $proofreadResult['text'],
+                    'proofread_html' => $proofreadResult['proofread_html'],
+                    'proofread_text' => $proofreadResult['plain_text'],
                     'proofread_generated_at' => now(),
                 ]);
             }
         } elseif ($type === 'summary' && empty($transcript->summary_html)) {
-            $summaryResult = $gemini->summarize($transcript, $transcript->summary_style ?? 'executive');
+            $summaryResult = $gemini->generate($transcript, $transcript->summary_style ?? 'executive');
             if ($summaryResult['success']) {
                 $transcript->update([
-                    'summary_html' => $summaryResult['html'],
-                    'summary_text' => $summaryResult['text'],
+                    'summary_html' => $summaryResult['summary_html'],
+                    'summary_text' => $summaryResult['plain_text'],
                     'summary_generated_at' => now(),
                 ]);
             }
