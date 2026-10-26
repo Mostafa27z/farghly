@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -10,6 +11,9 @@ class YouTubeTranscriptService
     protected const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     protected const INNERTUBE_API_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
     protected const INNERTUBE_CLIENT_VERSION = '20.10.38';
+
+    /** Diagnostic info collected during the last extract() call. */
+    public array $diagnostics = [];
 
     /**
      * Extract transcript and video metadata using 100% Native PHP.
@@ -32,6 +36,8 @@ class YouTubeTranscriptService
             ];
         }
 
+        $this->diagnostics = [];
+
         // 1. Fetch Caption Tracks via InnerTube API (Primary) or WebPage HTML (Fallback)
         $captionTracks = $this->fetchCaptionTracksViaInnerTube($videoId);
 
@@ -40,6 +46,26 @@ class YouTubeTranscriptService
         }
 
         if (empty($captionTracks)) {
+            // Optional third-party fallback (works from blocked datacenter IPs)
+            $fallback = $this->extractViaFallbackApi($videoId);
+            if ($fallback) {
+                return $fallback;
+            }
+
+            Log::warning('YouTube transcript: no caption tracks found', [
+                'video_id' => $videoId,
+                'diagnostics' => $this->diagnostics,
+            ]);
+
+            if ($this->wasBlockedByYouTube()) {
+                return [
+                    'success' => false,
+                    'code' => 'YOUTUBE_BLOCKED',
+                    'message_ar' => 'يوتيوب يمنع الطلبات القادمة من عنوان IP الخاص بالسيرفر (حماية ضد الروبوتات). يرجى ضبط بروكسي أو مفتاح خدمة بديلة في إعدادات الخادم.',
+                    'message_en' => 'YouTube is blocking requests from this server IP (bot protection). Configure a proxy or fallback API key.',
+                ];
+            }
+
             return [
                 'success' => false,
                 'code' => 'TRANSCRIPTS_DISABLED',
@@ -106,35 +132,109 @@ class YouTubeTranscriptService
     }
 
     /**
-     * Fetch caption tracks using YouTube InnerTube Android API.
+     * Build an HTTP client honoring optional proxy / cookie config.
+     */
+    protected function http(int $timeout = 15): PendingRequest
+    {
+        $req = Http::timeout($timeout)->withHeaders([
+            // Pre-accepted EU consent so YouTube doesn't return a consent interstitial
+            'Cookie' => 'CONSENT=YES+1; SOCS=CAI;' . (config('services.youtube.cookies') ? ' ' . config('services.youtube.cookies') : ''),
+        ]);
+
+        if ($proxy = config('services.youtube.proxy')) {
+            $req = $req->withOptions(['proxy' => $proxy]);
+        }
+
+        return $req;
+    }
+
+    protected function wasBlockedByYouTube(): bool
+    {
+        foreach ($this->diagnostics as $d) {
+            $status = strtoupper($d['playability_status'] ?? '');
+            $reason = strtolower($d['reason'] ?? '');
+            $http = (int) ($d['http_status'] ?? 0);
+            if (
+                in_array($status, ['LOGIN_REQUIRED'], true)
+                || str_contains($reason, 'bot')
+                || str_contains($reason, 'sign in')
+                || in_array($http, [403, 429], true)
+                || !empty($d['captcha'])
+                || !empty($d['error'])
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Fetch caption tracks via YouTube InnerTube, trying several client identities.
      */
     protected function fetchCaptionTracksViaInnerTube(string $videoId): array
     {
-        try {
-            $response = Http::timeout(15)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                    'User-Agent' => 'com.google.android.youtube/' . self::INNERTUBE_CLIENT_VERSION . ' (Linux; U; Android 14)',
-                ])
-                ->post(self::INNERTUBE_API_URL, [
-                    'context' => [
-                        'client' => [
-                            'clientName' => 'ANDROID',
-                            'clientVersion' => self::INNERTUBE_CLIENT_VERSION,
-                        ],
-                    ],
-                    'videoId' => $videoId,
-                ]);
+        $clients = [
+            [
+                'name' => 'ANDROID',
+                'ua' => 'com.google.android.youtube/' . self::INNERTUBE_CLIENT_VERSION . ' (Linux; U; Android 14)',
+                'client' => ['clientName' => 'ANDROID', 'clientVersion' => self::INNERTUBE_CLIENT_VERSION, 'androidSdkVersion' => 34, 'hl' => 'en'],
+            ],
+            [
+                'name' => 'IOS',
+                'ua' => 'com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)',
+                'client' => ['clientName' => 'IOS', 'clientVersion' => '20.10.4', 'deviceModel' => 'iPhone16,2', 'hl' => 'en'],
+            ],
+            [
+                'name' => 'TV_EMBEDDED',
+                'ua' => self::USER_AGENT,
+                'client' => ['clientName' => 'TVHTML5_SIMPLY_EMBEDDED_PLAYER', 'clientVersion' => '2.0', 'hl' => 'en'],
+                'third_party' => ['embedUrl' => 'https://www.youtube.com/watch?v=' . $videoId],
+            ],
+            [
+                'name' => 'WEB',
+                'ua' => self::USER_AGENT,
+                'client' => ['clientName' => 'WEB', 'clientVersion' => '2.20250101.00.00', 'hl' => 'en'],
+            ],
+        ];
 
-            if ($response->successful()) {
-                $data = $response->json();
-                $tracks = $data['captions']['playerCaptionsTracklistRenderer']['captionTracks'] ?? [];
-                if (is_array($tracks) && !empty($tracks)) {
-                    return $tracks;
+        foreach ($clients as $c) {
+            $diag = ['client' => $c['name']];
+
+            try {
+                $context = ['client' => $c['client']];
+                if (!empty($c['third_party'])) {
+                    $context['thirdParty'] = $c['third_party'];
                 }
+
+                $response = $this->http()
+                    ->withHeaders(['Content-Type' => 'application/json', 'User-Agent' => $c['ua']])
+                    ->post(self::INNERTUBE_API_URL, [
+                        'context' => $context,
+                        'videoId' => $videoId,
+                        'contentCheckOk' => true,
+                        'racyCheckOk' => true,
+                    ]);
+
+                $diag['http_status'] = $response->status();
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $diag['playability_status'] = $data['playabilityStatus']['status'] ?? null;
+                    $diag['reason'] = $data['playabilityStatus']['reason'] ?? null;
+
+                    $tracks = $data['captions']['playerCaptionsTracklistRenderer']['captionTracks'] ?? [];
+                    if (is_array($tracks) && !empty($tracks)) {
+                        $this->diagnostics[] = $diag + ['tracks' => count($tracks)];
+                        return $tracks;
+                    }
+                }
+            } catch (\Throwable $e) {
+                $diag['error'] = $e->getMessage();
+                Log::warning("InnerTube caption fetch failed ({$c['name']}): {$e->getMessage()}");
             }
-        } catch (\Throwable $e) {
-            Log::warning("InnerTube caption fetch failed: {$e->getMessage()}");
+
+            $this->diagnostics[] = $diag;
         }
 
         return [];
@@ -145,30 +245,124 @@ class YouTubeTranscriptService
      */
     protected function fetchCaptionTracksViaWebPage(string $videoId): array
     {
+        $diag = ['client' => 'WEBPAGE'];
+
         try {
-            $response = Http::timeout(15)
+            $response = $this->http()
                 ->withHeaders([
                     'User-Agent' => self::USER_AGENT,
                     'Accept-Language' => 'ar,en;q=0.9',
                 ])
                 ->get("https://www.youtube.com/watch?v={$videoId}");
 
-            if ($response->successful()) {
-                $html = $response->body();
+            $diag['http_status'] = $response->status();
+            $html = $response->body();
 
+            if (str_contains($html, 'g-recaptcha') || str_contains($html, '/sorry/')) {
+                $diag['captcha'] = true;
+            }
+
+            if ($response->successful()) {
                 // Regex for captionTracks in ytInitialPlayerResponse
                 if (preg_match('/"captionTracks":\s*(\[.*?\])/s', $html, $matches)) {
                     $tracks = json_decode($matches[1], true);
                     if (is_array($tracks) && !empty($tracks)) {
+                        $this->diagnostics[] = $diag + ['tracks' => count($tracks)];
                         return $tracks;
                     }
                 }
+
+                if (preg_match('/"playabilityStatus":\{"status":"([A-Z_]+)"(?:,"reason":"([^"]*)")?/', $html, $m)) {
+                    $diag['playability_status'] = $m[1];
+                    $diag['reason'] = $m[2] ?? null;
+                }
             }
         } catch (\Throwable $e) {
+            $diag['error'] = $e->getMessage();
             Log::warning("Webpage caption fetch failed: {$e->getMessage()}");
         }
 
+        $this->diagnostics[] = $diag;
+
         return [];
+    }
+
+    /**
+     * Optional fallback through Supadata API (set SUPADATA_API_KEY). Works from blocked datacenter IPs.
+     */
+    protected function extractViaFallbackApi(string $videoId): ?array
+    {
+        $key = config('services.youtube.fallback_api_key');
+        if (!$key) {
+            return null;
+        }
+
+        $videoUrl = "https://www.youtube.com/watch?v={$videoId}";
+
+        try {
+            $response = Http::timeout(60)
+                ->withHeaders(['x-api-key' => $key])
+                ->get('https://api.supadata.ai/v1/youtube/transcript', ['url' => $videoUrl, 'text' => 'false']);
+
+            if (!$response->successful()) {
+                Log::warning('Fallback transcript API failed', ['status' => $response->status(), 'body' => $response->body()]);
+                return null;
+            }
+
+            $data = $response->json();
+            $items = $data['content'] ?? [];
+            if (!is_array($items) || empty($items)) {
+                return null;
+            }
+
+            $segments = [];
+            $texts = [];
+            $maxEnd = 0;
+            $i = 1;
+            foreach ($items as $item) {
+                $text = $this->cleanTranscriptText((string) ($item['text'] ?? ''));
+                if ($text === '') {
+                    continue;
+                }
+                $start = round(((float) ($item['offset'] ?? 0)) / 1000, 2);
+                $dur = round(((float) ($item['duration'] ?? 0)) / 1000, 2);
+                $end = round($start + $dur, 2);
+                $maxEnd = max($maxEnd, $end);
+                $texts[] = $text;
+                $segments[] = [
+                    'index' => $i++,
+                    'text' => $text,
+                    'offset_seconds' => $start,
+                    'duration_seconds' => $dur,
+                    'end_seconds' => $end,
+                    'timestamp_formatted' => $this->formatTimestamp($start),
+                ];
+            }
+
+            if (empty($segments)) {
+                return null;
+            }
+
+            $meta = $this->fetchMetadata($videoUrl, $videoId);
+
+            return [
+                'success' => true,
+                'video_id' => $videoId,
+                'video_url' => $videoUrl,
+                'title' => $meta['title'] ?? "فيديو يوتيوب ({$videoId})",
+                'channel_name' => $meta['author_name'] ?? 'قناة يوتيوب',
+                'thumbnail_url' => $meta['thumbnail_url'] ?? "https://img.youtube.com/vi/{$videoId}/maxresdefault.jpg",
+                'language' => $data['lang'] ?? 'ar',
+                'segment_count' => count($segments),
+                'duration_seconds' => (int) round($maxEnd),
+                'duration_formatted' => $this->formatTimestamp($maxEnd),
+                'full_text' => implode(' ', $texts),
+                'segments' => $segments,
+            ];
+        } catch (\Throwable $e) {
+            Log::warning("Fallback transcript API exception: {$e->getMessage()}");
+            return null;
+        }
     }
 
     /**
@@ -203,7 +397,7 @@ class YouTubeTranscriptService
     protected function fetchTimedTextXml(string $baseUrl): ?string
     {
         try {
-            $response = Http::timeout(20)
+            $response = $this->http(20)
                 ->withHeaders([
                     'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36,gzip(gfe)',
                 ])

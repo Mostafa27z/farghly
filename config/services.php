@@ -40,4 +40,13 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
     ],
 
+    'youtube' => [
+        // e.g. http://user:pass@host:port  (residential/rotating proxy recommended on shared hosting)
+        'proxy' => env('YOUTUBE_PROXY'),
+        // Optional raw cookie string exported from a logged-in browser
+        'cookies' => env('YOUTUBE_COOKIES'),
+        // Optional Supadata API key used as a fallback when YouTube blocks the server IP
+        'fallback_api_key' => env('SUPADATA_API_KEY'),
+    ],
+
 ];
