@@ -1285,39 +1285,46 @@ export default function Welcome() {
 
                 {/* 9. Final High Impact Call to Action */}
                 <section id="contact-sales" className="max-w-4xl mx-auto px-4 sm:px-6 pb-16 sm:pb-28">
-                    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-white via-slate-50 to-emerald-50/40 dark:from-[#141822] dark:to-[#1C2028] border border-emerald-500/30 p-5 sm:p-12 text-center relative overflow-hidden shadow-xl dark:shadow-2xl transition-colors">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 dark:bg-[#10B981]/15 rounded-full blur-[90px] pointer-events-none" />
+                    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 dark:from-[#0D121D] dark:via-[#111726] dark:to-[#090C14] border border-emerald-500/20 dark:border-emerald-500/40 p-6 sm:p-12 text-center relative overflow-hidden shadow-xl dark:shadow-[0_0_50px_rgba(16,185,129,0.14)] transition-all">
+                        {/* Ambient subtle glow dots */}
+                        <div className="absolute -top-16 -right-16 w-64 h-64 bg-emerald-500/10 dark:bg-[#10B981]/20 rounded-full blur-[90px] pointer-events-none" />
+                        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-teal-500/10 dark:bg-[#4EDEA3]/15 rounded-full blur-[90px] pointer-events-none" />
 
-                        <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold uppercase tracking-wider">
-                            {isRtl ? 'ابدأ الآن واستغل وقتك بشكل أفضل' : 'Start Today & Learn Faster'}
-                        </span>
-                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-3 mb-4">
-                            {isRtl ? 'عندك محاضرات كثيرة؟ أو مذكرات محتاج تجهزها؟' : 'Have Piles of Lectures to Watch or Notes to Prepare?'}
-                        </h2>
-                        <p className="text-xs sm:text-base text-slate-600 dark:text-[#BBCAFF] max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed">
-                            {isRtl
-                                ? 'لا تجعل الساعات الطويلة التي تقضيها في مشاهدة الفيديوهات أو تفريغها يدوياً تستهلك وقت المذاكرة أو التحضير للشرح. حوّل المحتوى إلى مذكرات منظمة بهويتك الخاصة الآن.'
-                                : 'Stop spending entire days manually listening and typing. Transform videos into organized, branded study memos in minutes.'}
-                        </p>
+                        <div className="relative z-10">
+                            <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-100/70 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-[#4EDEA3] font-mono text-xs font-bold uppercase tracking-wider mb-4 shadow-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-[#4EDEA3] animate-pulse" />
+                                <span>{isRtl ? 'ابدأ الآن واستغل وقتك بشكل أفضل' : 'Start Today & Learn Faster'}</span>
+                            </div>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                            <a
-                                href={`https://wa.me/201129274930?text=${encodeURIComponent(isRtl ? 'مرحباً، أرغب في الاستفسار عن اشتراك منصة فرغلي' : 'Hello, I would like to inquire about subscribing to Farghly')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_24px_rgba(16,185,129,0.35)] transition-all"
-                            >
-                                <span className="material-symbols-outlined text-lg sm:text-xl">chat</span>
-                                <span>{isRtl ? 'تواصل عبر واتساب المبيعات فوراً' : 'Chat with Sales on WhatsApp'}</span>
-                            </a>
+                            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1 mb-4 tracking-tight leading-snug">
+                                {isRtl ? 'عندك محاضرات كثيرة؟ أو مذكرات محتاج تجهزها؟' : 'Have Piles of Lectures to Watch or Notes to Prepare?'}
+                            </h2>
 
-                            <Link
-                                href={route('login')}
-                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-white font-semibold text-xs sm:text-sm border border-slate-300 dark:border-white/10 transition-all"
-                            >
-                                <span className="material-symbols-outlined text-base">lock</span>
-                                <span>{isRtl ? 'دخول المشتركين' : 'Subscriber Login'}</span>
-                            </Link>
+                            <p className="text-xs sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed font-medium">
+                                {isRtl
+                                    ? 'لا تجعل الساعات الطويلة التي تقضيها في مشاهدة الفيديوهات أو تفريغها يدوياً تستهلك وقت المذاكرة أو التحضير للشرح. حوّل المحتوى إلى مذكرات منظمة بهويتك الخاصة الآن.'
+                                    : 'Stop spending entire days manually listening and typing. Transform videos into organized, branded study memos in minutes.'}
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                                <a
+                                    href={`https://wa.me/201129274930?text=${encodeURIComponent(isRtl ? 'مرحباً، أرغب في الاستفسار عن اشتراك منصة فرغلي' : 'Hello, I would like to inquire about subscribing to Farghly')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-7 sm:px-9 py-3.5 sm:py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-[#10B981] hover:from-emerald-500 hover:to-[#34D399] text-white font-bold text-xs sm:text-sm shadow-[0_0_24px_rgba(16,185,129,0.35)] hover:shadow-[0_0_36px_rgba(16,185,129,0.55)] transition-all cursor-pointer"
+                                >
+                                    <span className="material-symbols-outlined text-lg sm:text-xl">chat</span>
+                                    <span>{isRtl ? 'تواصل عبر واتساب المبيعات فوراً' : 'Chat with Sales on WhatsApp'}</span>
+                                </a>
+
+                                <Link
+                                    href={route('login')}
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 sm:py-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-white font-bold text-xs sm:text-sm border border-slate-300 dark:border-white/20 transition-all cursor-pointer backdrop-blur-sm"
+                                >
+                                    <span className="material-symbols-outlined text-base">lock</span>
+                                    <span>{isRtl ? 'دخول المشتركين' : 'Subscriber Login'}</span>
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </section>
