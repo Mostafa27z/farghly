@@ -46,6 +46,11 @@ class YouTubeTranscriptService
         }
 
         if (empty($captionTracks)) {
+            // PO-token-free path via the watch-page transcript panel
+            if ($viaPanel = $this->extractViaGetTranscript($videoId)) {
+                return $viaPanel;
+            }
+
             // Optional third-party fallback (works from blocked datacenter IPs)
             $fallback = $this->extractViaFallbackApi($videoId);
             if ($fallback) {
@@ -90,9 +95,16 @@ class YouTubeTranscriptService
         $xmlBody = $this->fetchTimedTextXml($selectedTrack['baseUrl']);
 
         if (empty($xmlBody)) {
+            // timedtext is withheld without a PO token; try the transcript panel endpoint instead
+            if ($viaPanel = $this->extractViaGetTranscript($videoId)) {
+                return $viaPanel;
+            }
+
             if ($fallback = $this->extractViaFallbackApi($videoId)) {
                 return $fallback;
             }
+
+            Log::warning('YouTube transcript: timedtext empty', ['video_id' => $videoId, 'diagnostics' => $this->diagnostics]);
 
             return [
                 'success' => false,
@@ -289,6 +301,146 @@ class YouTubeTranscriptService
         $this->diagnostics[] = $diag;
 
         return [];
+    }
+
+    /**
+     * Build SAPISIDHASH auth headers from the configured cookie string (needed for logged-in WEB requests).
+     */
+    protected function authHeaders(): array
+    {
+        $headers = ['Origin' => 'https://www.youtube.com', 'X-Origin' => 'https://www.youtube.com'];
+        $cookies = (string) config('services.youtube.cookies');
+
+        if ($cookies !== '' && preg_match('/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/', $cookies, $m)) {
+            $ts = time();
+            $hash = sha1($ts . ' ' . trim($m[1]) . ' https://www.youtube.com');
+            $headers['Authorization'] = "SAPISIDHASH {$ts}_{$hash}";
+            $headers['X-Goog-AuthUser'] = '0';
+        }
+
+        return $headers;
+    }
+
+    /**
+     * Fetch transcript through the watch-page "Show transcript" endpoint (youtubei/v1/get_transcript).
+     * This path does not require a PO token, unlike the timedtext baseUrl.
+     */
+    protected function extractViaGetTranscript(string $videoId): ?array
+    {
+        $diag = ['client' => 'GET_TRANSCRIPT'];
+        $videoUrl = "https://www.youtube.com/watch?v={$videoId}";
+
+        try {
+            $page = $this->http()
+                ->withHeaders(['User-Agent' => self::USER_AGENT, 'Accept-Language' => 'en-US,en;q=0.9'])
+                ->get($videoUrl);
+
+            $html = $page->body();
+            $diag['http_status'] = $page->status();
+
+            if (!preg_match('/"getTranscriptEndpoint":\{"params":"([^"]+)"/', $html, $pm)) {
+                $diag['reason'] = 'no getTranscriptEndpoint on page';
+                $this->diagnostics[] = $diag;
+                return null;
+            }
+
+            $clientVersion = '2.20250101.00.00';
+            if (preg_match('/"INNERTUBE_CONTEXT_CLIENT_VERSION":"([^"]+)"/', $html, $cv)) {
+                $clientVersion = $cv[1];
+            }
+            $visitorData = null;
+            if (preg_match('/"VISITOR_DATA":"([^"]+)"/', $html, $vd)) {
+                $visitorData = $vd[1];
+            }
+
+            $client = ['clientName' => 'WEB', 'clientVersion' => $clientVersion, 'hl' => 'en'];
+            if ($visitorData) {
+                $client['visitorData'] = $visitorData;
+            }
+
+            $response = $this->http(20)
+                ->withHeaders(array_merge([
+                    'Content-Type' => 'application/json',
+                    'User-Agent' => self::USER_AGENT,
+                    'X-Youtube-Client-Name' => '1',
+                    'X-Youtube-Client-Version' => $clientVersion,
+                ], $this->authHeaders()))
+                ->post('https://www.youtube.com/youtubei/v1/get_transcript?prettyPrint=false', [
+                    'context' => ['client' => $client],
+                    'params' => $pm[1],
+                ]);
+
+            $diag['http_status'] = $response->status();
+            $data = $response->json() ?? [];
+
+            $initial = $data['actions'][0]['updateEngagementPanelAction']['content']['transcriptRenderer']['content']
+                ['transcriptSearchPanelRenderer']['body']['transcriptSegmentListRenderer']['initialSegments'] ?? [];
+
+            if (empty($initial)) {
+                $diag['reason'] = 'empty segments: ' . substr($response->body(), 0, 120);
+                $this->diagnostics[] = $diag;
+                return null;
+            }
+
+            $segments = [];
+            $texts = [];
+            $maxEnd = 0;
+            $i = 1;
+            foreach ($initial as $item) {
+                $r = $item['transcriptSegmentRenderer'] ?? null;
+                if (!$r) {
+                    continue;
+                }
+                $text = '';
+                foreach (($r['snippet']['runs'] ?? []) as $run) {
+                    $text .= $run['text'] ?? '';
+                }
+                $text = $this->cleanTranscriptText($text);
+                if ($text === '') {
+                    continue;
+                }
+                $start = round(((float) ($r['startMs'] ?? 0)) / 1000, 2);
+                $end = round(((float) ($r['endMs'] ?? 0)) / 1000, 2);
+                $maxEnd = max($maxEnd, $end);
+                $texts[] = $text;
+                $segments[] = [
+                    'index' => $i++,
+                    'text' => $text,
+                    'offset_seconds' => $start,
+                    'duration_seconds' => round(max($end - $start, 0), 2),
+                    'end_seconds' => $end,
+                    'timestamp_formatted' => $this->formatTimestamp($start),
+                ];
+            }
+
+            if (empty($segments)) {
+                $this->diagnostics[] = $diag + ['reason' => 'segments had no text'];
+                return null;
+            }
+
+            $this->diagnostics[] = $diag + ['tracks' => count($segments)];
+            $meta = $this->fetchMetadata($videoUrl, $videoId);
+
+            return [
+                'success' => true,
+                'video_id' => $videoId,
+                'video_url' => $videoUrl,
+                'title' => $meta['title'] ?? "فيديو يوتيوب ({$videoId})",
+                'channel_name' => $meta['author_name'] ?? 'قناة يوتيوب',
+                'thumbnail_url' => $meta['thumbnail_url'] ?? "https://img.youtube.com/vi/{$videoId}/maxresdefault.jpg",
+                'language' => 'ar',
+                'segment_count' => count($segments),
+                'duration_seconds' => (int) round($maxEnd),
+                'duration_formatted' => $this->formatTimestamp($maxEnd),
+                'full_text' => implode(' ', $texts),
+                'segments' => $segments,
+            ];
+        } catch (\Throwable $e) {
+            $diag['error'] = $e->getMessage();
+            $this->diagnostics[] = $diag;
+            Log::warning("get_transcript failed: {$e->getMessage()}");
+            return null;
+        }
     }
 
     /**
