@@ -83,6 +83,10 @@ class YouTubeTranscriptService
         $selectedTrack = $this->selectTrack($captionTracks, $preferredLang);
 
         if (!$selectedTrack || empty($selectedTrack['baseUrl'])) {
+            if ($fallback = $this->extractViaFallbackApi($videoId)) {
+                return $fallback;
+            }
+
             return [
                 'success' => false,
                 'code' => 'NO_SUITABLE_TRACK',
@@ -118,6 +122,10 @@ class YouTubeTranscriptService
         $segmentsData = $this->parseTranscriptXml($xmlBody, $selectedTrack['languageCode'] ?? 'ar');
 
         if (empty($segmentsData['segments'])) {
+            if ($fallback = $this->extractViaFallbackApi($videoId)) {
+                return $fallback;
+            }
+
             return [
                 'success' => false,
                 'code' => 'EMPTY_TRANSCRIPT',
@@ -500,6 +508,14 @@ class YouTubeTranscriptService
             }
 
             $meta = $this->fetchMetadata($videoUrl, $videoId);
+
+            $this->diagnostics[] = [
+                'client' => 'FALLBACK_API (Supadata)',
+                'http_status' => $response->status(),
+                'playability_status' => 'OK',
+                'reason' => 'Fetched ' . count($segments) . ' segments',
+                'tracks' => count($segments),
+            ];
 
             return [
                 'success' => true,
