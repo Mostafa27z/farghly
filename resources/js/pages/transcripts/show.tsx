@@ -177,35 +177,39 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
             <Head title={`استوديو التفريغ | ${transcript.title}`} />
 
             {/* Top Studio Bar */}
-            <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0F131C]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 py-3.5 shadow-xs dark:shadow-lg">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href={route('dashboard')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined text-base">arrow_forward</span>
-                            <span>العودة للمكتبة</span>
-                        </Link>
+            <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#0F131C]/95 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3.5 sm:px-6 py-2.5 sm:py-3.5 shadow-xs dark:shadow-lg">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-4">
+                    <div className="flex flex-wrap items-center justify-between w-full md:w-auto gap-2 sm:gap-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <Link
+                                href={route('dashboard')}
+                                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-base">arrow_forward</span>
+                                <span className="hidden sm:inline">العودة للمكتبة</span>
+                                <span className="sm:hidden">المكتبة</span>
+                            </Link>
 
-                        <Link
-                            href={route('themes.index')}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-[#10B981]/10 border border-emerald-200 dark:border-[#10B981]/25 text-xs font-bold text-emerald-700 dark:text-[#4EDEA3] transition-all"
-                        >
-                            <span className="material-symbols-outlined text-base">palette</span>
-                            <span>الهوية والقوالب</span>
-                        </Link>
+                            <Link
+                                href={route('themes.index')}
+                                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-[#10B981]/10 border border-emerald-200 dark:border-[#10B981]/25 text-xs font-bold text-emerald-700 dark:text-[#4EDEA3] transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base">palette</span>
+                                <span className="hidden sm:inline">الهوية والقوالب</span>
+                                <span className="sm:hidden">القوالب</span>
+                            </Link>
+                        </div>
 
                         <div className="h-5 w-[1px] bg-slate-200 dark:bg-white/20 hidden md:block" />
 
-                        <div className="flex flex-col text-right">
-                            <h1 className="text-sm font-bold text-slate-900 dark:text-white max-w-md truncate">{transcript.title}</h1>
-                            <span className="text-[11px] text-slate-500 dark:text-[#BBCAFF]">{transcript.channel_name}</span>
+                        <div className="flex flex-col text-right max-w-[180px] sm:max-w-md">
+                            <h1 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">{transcript.title}</h1>
+                            <span className="text-[10px] sm:text-[11px] text-slate-500 dark:text-[#BBCAFF] truncate">{transcript.channel_name}</span>
                         </div>
                     </div>
 
                     {/* Actions Bar */}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-start sm:justify-end gap-1.5 sm:gap-2 w-full md:w-auto">
                         {/* Theme Toggle Button */}
                         <ThemeToggle />
 
@@ -213,20 +217,20 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         <button
                             type="button"
                             onClick={() => setShowProofreadModal(true)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-[#4EDEA3] font-bold text-xs transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-[#4EDEA3] font-bold text-[11px] sm:text-xs transition-all cursor-pointer"
                         >
-                            <span className="material-symbols-outlined text-base">spellcheck</span>
-                            <span>{transcript.proofread_html ? 'إعادة التدقيق اللغوي الكامل' : 'تدقيق النص بالكامل (AI)'}</span>
+                            <span className="material-symbols-outlined text-base shrink-0">spellcheck</span>
+                            <span>{transcript.proofread_html ? 'إعادة التدقيق' : 'تدقيق النص (AI)'}</span>
                         </button>
 
                         {/* Gemini Summary Button */}
                         <button
                             type="button"
                             onClick={() => setShowSummaryModal(true)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-[11px] sm:text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all cursor-pointer"
                         >
-                            <span className="material-symbols-outlined text-base">auto_awesome</span>
-                            <span>{transcript.summary_html ? 'إعادة التلخيص' : 'توليد ملخص PDF'}</span>
+                            <span className="material-symbols-outlined text-base shrink-0">auto_awesome</span>
+                            <span>{transcript.summary_html ? 'إعادة التلخيص' : 'تلخيص PDF'}</span>
                         </button>
 
                         {/* Direct PDF print for Full Proofread */}
@@ -235,11 +239,11 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                 href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'proofread' })}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-[#10B981]/15 border border-emerald-300 dark:border-[#10B981]/40 hover:bg-emerald-100 dark:hover:bg-[#10B981]/25 text-xs text-emerald-800 dark:text-[#4EDEA3] font-bold transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-[#10B981]/15 border border-emerald-300 dark:border-[#10B981]/40 hover:bg-emerald-100 dark:hover:bg-[#10B981]/25 text-[11px] sm:text-xs text-emerald-800 dark:text-[#4EDEA3] font-bold transition-all"
                                 title="فتح ملف PDF للنص الكامل المدقق جاهز للطباعة"
                             >
-                                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                                <span>PDF النص الكامل المدقق</span>
+                                <span className="material-symbols-outlined text-base shrink-0">picture_as_pdf</span>
+                                <span>PDF التدقيق</span>
                             </a>
                         )}
 
@@ -249,10 +253,10 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                 href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'summary' })}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-[#F59E0B]/15 border border-amber-300 dark:border-[#F59E0B]/40 hover:bg-amber-100 dark:hover:bg-[#F59E0B]/25 text-xs text-amber-700 dark:text-[#FFB95F] font-bold transition-all"
+                                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-[#F59E0B]/15 border border-amber-300 dark:border-[#F59E0B]/40 hover:bg-amber-100 dark:hover:bg-[#F59E0B]/25 text-[11px] sm:text-xs text-amber-700 dark:text-[#FFB95F] font-bold transition-all"
                                 title="فتح ملف PDF للملخص التنفيذي"
                             >
-                                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                                <span className="material-symbols-outlined text-base shrink-0">picture_as_pdf</span>
                                 <span>PDF الملخص</span>
                             </a>
                         )}
@@ -260,18 +264,18 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         <button
                             type="button"
                             onClick={copyFullText}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-white transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs text-slate-700 dark:text-white transition-all cursor-pointer"
                         >
-                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">
+                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">
                                 {copied ? 'check' : 'content_copy'}
                             </span>
-                            <span>{copied ? 'تم النسخ!' : 'نسخ النص'}</span>
+                            <span>{copied ? 'تم النسخ!' : 'نسخ'}</span>
                         </button>
 
                         {/* Export Dropdown / Subtitle links */}
                         <a
                             href={route('transcripts.export.srt', transcript.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-emerald-700 dark:text-[#4EDEA3] font-mono font-bold transition-all"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs text-emerald-700 dark:text-[#4EDEA3] font-mono font-bold transition-all"
                             title="تحميل ملف الترجمة للبرامج"
                         >
                             .SRT
@@ -279,7 +283,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                         <a
                             href={route('transcripts.export.vtt', transcript.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-indigo-700 dark:text-[#C0C1FF] font-mono font-bold transition-all"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs text-indigo-700 dark:text-[#C0C1FF] font-mono font-bold transition-all"
                             title="تحميل ملف الترجمة VTT"
                         >
                             .VTT
@@ -287,7 +291,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                         <a
                             href={route('transcripts.export.txt', transcript.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-[#DFE2EE] font-mono font-bold transition-all"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs text-slate-700 dark:text-[#DFE2EE] font-mono font-bold transition-all"
                             title="تحميل النص كاملاً كملف TXT"
                         >
                             .TXT
@@ -295,10 +299,10 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
 
                         <a
                             href={route('transcripts.export.docx', { transcript: transcript.id, type: transcript.proofread_html ? 'proofread' : (transcript.summary_html ? 'summary' : 'transcript') })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-700 dark:text-blue-300 font-bold transition-all"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 text-[11px] sm:text-xs text-blue-700 dark:text-blue-300 font-bold transition-all"
                             title="تحميل مستند وورد Word DOCX"
                         >
-                            <span className="material-symbols-outlined text-sm">description</span>
+                            <span className="material-symbols-outlined text-sm shrink-0">description</span>
                             <span>Word</span>
                         </a>
                     </div>
@@ -306,10 +310,10 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
             </header>
 
             {/* Split Studio Body */}
-            <main className="max-w-7xl mx-auto px-6 py-6 flex-1 w-full flex flex-col lg:flex-row gap-6">
+            <main className="max-w-7xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 flex-1 w-full flex flex-col lg:flex-row gap-6">
                 {/* Left Side (RTL Right): Embedded Video & Metadata */}
                 <div className="lg:w-5/12 flex flex-col gap-4">
-                    <div className="rounded-2xl overflow-hidden bg-black border border-slate-200 dark:border-white/10 shadow-2xl aspect-video sticky top-24">
+                    <div className="rounded-2xl overflow-hidden bg-black border border-slate-200 dark:border-white/10 shadow-2xl aspect-video static lg:sticky lg:top-24">
                         <iframe
                             ref={iframeRef}
                             src={`https://www.youtube.com/embed/${transcript.youtube_id}`}
@@ -357,12 +361,12 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                 {/* Right Side (RTL Left): Tabbed Workspace (Transcript vs AI Summary) */}
                 <div className="lg:w-7/12 flex flex-col gap-3">
                     {/* Workspace Tabs */}
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10">
-                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-white/10">
+                        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('transcript')}
-                                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                                     activeTab === 'transcript'
                                         ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
@@ -375,14 +379,14 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('proofread')}
-                                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                                     activeTab === 'proofread'
                                         ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-base">spellcheck</span>
-                                <span>النص الكامل المدقق لغوياً</span>
+                                <span>النص الكامل المدقق</span>
                                 {transcript.proofread_html && (
                                     <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
                                 )}
@@ -391,7 +395,7 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('summary')}
-                                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 ${
                                     activeTab === 'summary'
                                         ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'

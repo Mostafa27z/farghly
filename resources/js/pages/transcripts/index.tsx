@@ -74,26 +74,41 @@ export default function TranscriptsIndex({ transcripts, tenant, filters }: Props
             <Head title={`مساحة العمل | ${tenant.name}`} />
 
             {/* Top Workspace Header */}
-            <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0F131C]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 py-4 shadow-xs">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                                <span className="material-symbols-outlined text-[#003824] text-xl font-bold">graphic_eq</span>
+            <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0F131C]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3.5 sm:px-6 py-3 sm:py-4 shadow-xs">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex flex-wrap items-center justify-between w-full md:w-auto gap-2 sm:gap-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <Link href="/" className="flex items-center gap-2 group">
+                                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] shrink-0">
+                                    <span className="material-symbols-outlined text-[#003824] text-lg sm:text-xl font-bold">graphic_eq</span>
+                                </div>
+                                <span className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white">فرغلي</span>
+                            </Link>
+
+                            <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/20 hidden sm:block" />
+
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[120px] sm:max-w-none">{tenant.name}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] text-[10px] sm:text-xs font-mono font-bold border border-emerald-200 dark:border-[#10B981]/30 whitespace-nowrap">
+                                    {tenant.plan_name}
+                                </span>
                             </div>
-                            <span className="font-extrabold text-lg text-slate-900 dark:text-white">فرغلي</span>
-                        </Link>
-
-                        <div className="h-5 w-[1px] bg-slate-200 dark:bg-white/20 hidden md:block" />
-
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm font-bold text-slate-900 dark:text-white">{tenant.name}</span>
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] text-xs font-mono font-bold border border-emerald-200 dark:border-[#10B981]/30">
-                                {tenant.plan_name}
-                            </span>
                         </div>
 
-                        {/* Navigation links */}
+                        {/* Mobile quick actions */}
+                        <div className="flex items-center gap-2 md:hidden">
+                            <ThemeToggle />
+                            <Link
+                                href={route('logout')}
+                                method="post"
+                                as="button"
+                                className="text-[11px] text-slate-500 dark:text-[#BBCAFF] hover:text-red-500 font-bold transition-colors cursor-pointer px-1.5 py-1"
+                            >
+                                خروج
+                            </Link>
+                        </div>
+
+                        {/* Navigation links (Desktop) */}
                         <nav className="hidden lg:flex items-center gap-1.5 mr-4">
                             <Link
                                 href={route('dashboard')}
@@ -121,46 +136,75 @@ export default function TranscriptsIndex({ transcripts, tenant, filters }: Props
                     </div>
 
                     {/* Quota & User Bar */}
-                    <div className="flex items-center gap-4 text-xs">
-                        <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 shadow-xs">
-                            <span className="text-slate-600 dark:text-[#BBCAFF]">رصيد الفيديوهات:</span>
-                            <span className="font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold text-sm">
-                                {(tenant.remaining_videos ?? tenant.remaining_minutes ?? 0).toLocaleString()} فيديو
-                            </span>
-                            <span className="text-slate-300 dark:text-white/20">/</span>
-                            <span className="font-mono text-slate-600 dark:text-[#BBCAFF]">
-                                {(tenant.monthly_videos_limit ?? tenant.monthly_minutes_limit ?? 0).toLocaleString()} فيديو
-                            </span>
+                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-4 text-xs w-full md:w-auto">
+                        {/* Mobile quick links */}
+                        <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
+                            <Link
+                                href={route('dashboard')}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30 whitespace-nowrap"
+                            >
+                                المكتبة
+                            </Link>
+                            <Link
+                                href={route('themes.index')}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/5 transition-all flex items-center gap-1 whitespace-nowrap"
+                            >
+                                <span className="material-symbols-outlined text-xs text-emerald-600 dark:text-[#4EDEA3]">palette</span>
+                                <span>الهوية والقوالب</span>
+                            </Link>
+                            {auth?.is_staff && (
+                                <Link
+                                    href={auth?.is_super_admin ? route('admin.dashboard') : route('sales.index')}
+                                    className="px-2 py-1 rounded-lg text-[11px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 whitespace-nowrap"
+                                >
+                                    الإدارة
+                                </Link>
+                            )}
                         </div>
 
-                        <ThemeToggle />
+                        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 shadow-xs w-full sm:w-auto">
+                            <span className="text-slate-600 dark:text-[#BBCAFF] text-[11px] sm:text-xs">رصيد الفيديوهات:</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold text-xs sm:text-sm">
+                                    {(tenant.remaining_videos ?? tenant.remaining_minutes ?? 0).toLocaleString()} فيديو
+                                </span>
+                                <span className="text-slate-300 dark:text-white/20">/</span>
+                                <span className="font-mono text-slate-600 dark:text-[#BBCAFF] text-xs">
+                                    {(tenant.monthly_videos_limit ?? tenant.monthly_minutes_limit ?? 0).toLocaleString()} فيديو
+                                </span>
+                            </div>
+                        </div>
 
-                        <Link
-                            href={route('logout')}
-                            method="post"
-                            as="button"
-                            className="text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-                        >
-                            تسجيل الخروج
-                        </Link>
+                        <div className="hidden md:flex items-center gap-3">
+                            <ThemeToggle />
+
+                            <Link
+                                href={route('logout')}
+                                method="post"
+                                as="button"
+                                className="text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                            >
+                                تسجيل الخروج
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {/* Main Stage */}
-            <main className="max-w-7xl mx-auto px-6 py-8">
+            <main className="max-w-7xl mx-auto px-3.5 sm:px-6 py-6 sm:py-8">
                 {/* 1. YouTube Transcribe Action Box */}
-                <div className="mb-10 p-6 rounded-2xl bg-white dark:bg-gradient-to-tr dark:from-[#141822] dark:to-[#181C24] border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-xl relative overflow-hidden">
+                <div className="mb-8 sm:mb-10 p-4 sm:p-6 rounded-2xl bg-white dark:bg-gradient-to-tr dark:from-[#141822] dark:to-[#181C24] border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-80 h-80 bg-[#10B981]/10 rounded-full blur-[90px] pointer-events-none" />
 
                     <div className="relative z-10 max-w-3xl">
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold uppercase tracking-wider">
                             استخراج فوري
                         </span>
-                        <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1 mb-2">
+                        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1 mb-2">
                             تفريغ محتوى فيديو يوتيوب جديد
                         </h2>
-                        <p className="text-sm text-slate-600 dark:text-[#BBCAFF] mb-6">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] mb-4 sm:mb-6">
                             أدخل رابط أي فيديو من يوتيوب (فيديو عادي، شورتس، أو بث مباشر مسجل) لاستخراج النصوص وتوقيتاتها بدقة.
                         </p>
 

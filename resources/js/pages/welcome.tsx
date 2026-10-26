@@ -9,6 +9,7 @@ export default function Welcome() {
     const [faqOpen, setFaqOpen] = useState<number | null>(null);
     const [activeStudioTab, setActiveStudioTab] = useState<'memo' | 'summary' | 'transcript'>('memo');
     const [audienceTab, setAudienceTab] = useState<'students' | 'teachers'>('students');
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const isRtl = lang === 'ar';
 
@@ -42,17 +43,17 @@ export default function Welcome() {
             <Head title={isRtl ? 'فرغلي | من ساعات مشاهدة إلى دقائق من المذاكرة - استوديو تلخيص الفيديوهات والمذكرات الذكية' : 'Farghly | From Hours of Watching to Minutes of Studying - Smart Video Summaries & Memos'} />
 
             {/* Navigation Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-white/85 dark:bg-[#0A0E16]/85 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.6)] transition-colors">
-                <div className="max-w-7xl mx-auto h-20 px-6 flex items-center justify-between gap-4">
+            <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#0A0E16]/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 shadow-xs dark:shadow-[0_4px_24px_rgba(0,0,0,0.6)] transition-colors">
+                <div className="max-w-7xl mx-auto h-16 sm:h-20 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
                     {/* Brand */}
-                    <div className="flex items-center gap-6">
-                        <Link href="/" className="flex items-center gap-3 group">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform">
-                                <span className="material-symbols-outlined text-[#003824] text-2xl font-bold">menu_book</span>
+                    <div className="flex items-center gap-3 sm:gap-6">
+                        <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform shrink-0">
+                                <span className="material-symbols-outlined text-[#003824] text-xl sm:text-2xl font-bold">menu_book</span>
                             </div>
                             <div className="flex flex-col text-right">
-                                <span className="font-extrabold text-xl text-slate-900 dark:text-white tracking-tight leading-tight">{isRtl ? 'فرغلي' : 'Farghly'}</span>
-                                <span className="text-[10px] text-emerald-600 dark:text-[#4EDEA3] tracking-widest font-mono font-bold uppercase">{isRtl ? 'فرغلي AI' : 'FARGHLY AI'}</span>
+                                <span className="font-extrabold text-base sm:text-xl text-slate-900 dark:text-white tracking-tight leading-tight">{isRtl ? 'فرغلي' : 'Farghly'}</span>
+                                <span className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-[#4EDEA3] tracking-widest font-mono font-bold uppercase">{isRtl ? 'فرغلي AI' : 'FARGHLY AI'}</span>
                             </div>
                         </Link>
 
@@ -79,7 +80,7 @@ export default function Welcome() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
                         {/* Theme Toggle Button */}
                         <ThemeToggle />
 
@@ -87,7 +88,7 @@ export default function Welcome() {
                         <button
                             type="button"
                             onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs font-mono text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:border-emerald-500/40 transition-all cursor-pointer"
+                            className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs font-mono text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:border-emerald-500/40 transition-all cursor-pointer shrink-0"
                         >
                             <span className={isRtl ? 'text-emerald-600 dark:text-[#4EDEA3] font-bold' : ''}>العربية</span>
                             <span className="text-slate-300 dark:text-white/20">|</span>
@@ -98,25 +99,27 @@ export default function Welcome() {
                             auth.is_super_admin || auth.user.system_role === 'super_admin' ? (
                                 <Link
                                     href={route('admin.dashboard')}
-                                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] hover:shadow-[0_0_32px_rgba(16,185,129,0.5)] transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
                                 >
-                                    <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
-                                    <span>لوحة الإدارة</span>
+                                    <span className="material-symbols-outlined text-base sm:text-lg">admin_panel_settings</span>
+                                    <span className="hidden sm:inline">لوحة الإدارة</span>
+                                    <span className="sm:hidden">الإدارة</span>
                                 </Link>
                             ) : auth.is_sales || auth.user.system_role === 'sales' ? (
                                 <Link
                                     href={route('sales.index')}
-                                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] hover:shadow-[0_0_32px_rgba(16,185,129,0.5)] transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
                                 >
-                                    <span className="material-symbols-outlined text-lg">point_of_sale</span>
-                                    <span>بوابة المبيعات والاشتراكات</span>
+                                    <span className="material-symbols-outlined text-base sm:text-lg">point_of_sale</span>
+                                    <span className="hidden sm:inline">بوابة المبيعات</span>
+                                    <span className="sm:hidden">المبيعات</span>
                                 </Link>
                             ) : (
                                 <Link
                                     href={route('dashboard')}
-                                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] hover:shadow-[0_0_32px_rgba(16,185,129,0.5)] transition-all"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
                                 >
-                                    <span className="material-symbols-outlined text-lg">space_dashboard</span>
+                                    <span className="material-symbols-outlined text-base sm:text-lg">space_dashboard</span>
                                     <span>{isRtl ? 'مساحة العمل' : 'Workspace'}</span>
                                 </Link>
                             )
@@ -124,7 +127,7 @@ export default function Welcome() {
                             <>
                                 <Link
                                     href={route('login')}
-                                    className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-sm font-semibold text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                                    className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs sm:text-sm font-semibold text-slate-800 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all shrink-0"
                                 >
                                     <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-base">lock</span>
                                     <span>{isRtl ? 'دخول المشتركين' : 'Member Login'}</span>
@@ -132,29 +135,96 @@ export default function Welcome() {
 
                                 <a
                                     href="#plans"
-                                    className="flex items-center justify-center px-4.5 py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.02] transition-all"
+                                    className="flex items-center justify-center px-3.5 py-1.5 sm:px-4.5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.02] transition-all shrink-0 whitespace-nowrap"
                                 >
                                     <span>{isRtl ? 'ابدأ الآن' : 'Get Started'}</span>
                                 </a>
                             </>
                         )}
+
+                        {/* Mobile Menu Hamburger Toggle */}
+                        <button
+                            type="button"
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="lg:hidden p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-[#BBCAFF] transition-colors cursor-pointer shrink-0"
+                            aria-label="القائمة"
+                        >
+                            <span className="material-symbols-outlined text-2xl">{mobileMenuOpen ? 'close' : 'menu'}</span>
+                        </button>
                     </div>
                 </div>
+
+                {/* Mobile Drawer Menu */}
+                {mobileMenuOpen && (
+                    <div className="lg:hidden bg-white/95 dark:bg-[#0E121A]/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-4 py-4 space-y-2 shadow-xl animate-in slide-in-from-top-2 duration-200">
+                        <a
+                            href="#features"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-[#BBCAFF] hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
+                            {isRtl ? 'الأدوات التعليمية' : 'Features'}
+                        </a>
+                        <a
+                            href="#for-who"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-[#BBCAFF] hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
+                            {isRtl ? 'للطلاب والمدرسين' : 'Students & Teachers'}
+                        </a>
+                        <a
+                            href="#studio-workflow"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-[#BBCAFF] hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
+                            {isRtl ? 'استوديو المذكرات' : 'Smart Studio'}
+                        </a>
+                        <a
+                            href="#custom-themes"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-[#BBCAFF] hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
+                            {isRtl ? 'تصميم مذكرتك' : 'Themes & Branding'}
+                        </a>
+                        <a
+                            href="#plans"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-[#BBCAFF] hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
+                            {isRtl ? 'باقات الاشتراك' : 'Plans'}
+                        </a>
+                        <a
+                            href="#faq"
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="block px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-[#BBCAFF] hover:bg-slate-100 dark:hover:bg-white/5"
+                        >
+                            {isRtl ? 'الأسئلة الشائعة' : 'FAQ'}
+                        </a>
+                        {!auth.user && (
+                            <Link
+                                href={route('login')}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="block px-3 py-2 rounded-xl text-sm font-bold text-emerald-700 dark:text-[#4EDEA3] bg-emerald-50 dark:bg-[#10B981]/15"
+                            >
+                                {isRtl ? 'دخول المشتركين' : 'Member Login'}
+                            </Link>
+                        )}
+                    </div>
+                )}
             </header>
 
             {/* Main Content */}
-            <main className="pt-24">
+            <main className="pt-20 sm:pt-24">
                 {/* 1. Hero Section */}
-                <section className="relative overflow-hidden px-6 pt-16 pb-24 md:pt-24 md:pb-32 flex flex-col items-center justify-center">
+                <section className="relative overflow-hidden px-4 sm:px-6 pt-10 pb-16 sm:pt-20 sm:pb-28 flex flex-col items-center justify-center">
                     {/* Ambient Glow Backdrops */}
                     <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[850px] h-[500px] bg-emerald-500/10 dark:bg-[#10B981]/12 rounded-full blur-[150px] pointer-events-none" />
                     <div className="absolute top-20 -right-20 w-[450px] h-[350px] bg-indigo-500/10 dark:bg-[#6366F1]/10 rounded-full blur-[130px] pointer-events-none" />
 
-                    <div className="relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center">
-                        {/* Audience Badge */}
-                        <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/80 dark:bg-[#1C2028]/80 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-lg mb-8">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-[#4EDEA3] shadow-[0_0_10px_#10b981] animate-pulse" />
-                            <span className="text-xs sm:text-sm font-mono text-slate-700 dark:text-[#BBCAFF]">
+                    <div className="relative z-10 max-w-5xl mx-auto flex flex-col items-center text-center w-full">
+                        {/* Audience Badge - Fully responsive on extra small screens */}
+                        <div className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-1.5 rounded-2xl sm:rounded-full bg-white/85 dark:bg-[#1C2028]/85 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-lg mb-6 sm:mb-8 max-w-full">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-[#4EDEA3] shadow-[0_0_10px_#10b981] animate-pulse shrink-0" />
+                            <span className="text-[11px] sm:text-xs md:text-sm font-mono text-slate-700 dark:text-[#BBCAFF] leading-relaxed text-center">
                                 {isRtl
                                     ? '✦ منصة الذكاء الاصطناعي الأولى للتعليم • مصمم للطلاب والمدرسين وصناع المحتوى'
                                     : '✦ AI Education Suite • Built for Students, Teachers & Educators'}
@@ -162,14 +232,14 @@ export default function Welcome() {
                         </div>
 
                         {/* Hook Badge */}
-                        <div className="mb-4">
-                            <span className="inline-block px-4 py-1 rounded-full bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30 font-bold text-xs sm:text-sm tracking-wide shadow-sm">
+                        <div className="mb-4 max-w-full px-2">
+                            <span className="inline-block px-3.5 py-1 rounded-full bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30 font-bold text-xs sm:text-sm tracking-wide shadow-xs text-center leading-normal">
                                 {isRtl ? 'من ساعات مشاهدة إلى دقائق من المذاكرة ⏱️' : 'From Hours of Watching to Minutes of Studying ⏱️'}
                             </span>
                         </div>
 
                         {/* Title */}
-                        <h1 className="text-3xl sm:text-5xl lg:text-6xl text-slate-900 dark:text-white font-extrabold tracking-tight leading-[1.25] max-w-4xl mb-6">
+                        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-slate-900 dark:text-white font-extrabold tracking-tight leading-[1.3] sm:leading-[1.25] max-w-4xl mb-4 sm:mb-6 px-1">
                             {isRtl ? (
                                 <>
                                     حوّل فيديوهاتك التعليمية إلى{' '}
@@ -190,21 +260,21 @@ export default function Welcome() {
                         </h1>
 
                         {/* Subtitle / Pain-point copy */}
-                        <p className="text-base sm:text-lg text-slate-600 dark:text-[#BBCAFF] max-w-3xl leading-relaxed mb-10">
+                        <p className="text-xs sm:text-base lg:text-lg text-slate-600 dark:text-[#BBCAFF] max-w-3xl leading-relaxed mb-6 sm:mb-10 px-1">
                             {isRtl
                                 ? 'عندك امتحانات وفيديوهات شرح بالساعات ومش عارف تلحق تسمعها كلها؟ أو أنت مدرس وعندك محاضرات ومصادر كتير ومحتاج تحوّلها لمذكرات منظمة في وقت أقل؟ مع فرغلي، حوّل المحتوى الطويل إلى نصوص مفرّغة، ملخصات ذكية، ومستندات PDF أنيقة بتصميمك الخاص في مكان واحد.'
                                 : 'Drowning in hours of lectures before exams? Or a teacher needing structured study guides fast? Farghly turns long video content into synchronized transcripts, AI summaries, and beautiful branded PDF memos in minutes.'}
                         </p>
 
                         {/* Quick Interactive YouTube URL Input Bar */}
-                        <form onSubmit={handleQuickTranscribe} className="w-full max-w-3xl p-3 rounded-2xl bg-white dark:bg-[#181C24]/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-xl dark:shadow-[0_12px_40px_rgba(0,0,0,0.7)] group relative mb-6">
-                            <div className="flex flex-col sm:flex-row items-center gap-3">
-                                <div className="flex items-center gap-3 flex-1 w-full px-3">
-                                    <span className="w-10 h-10 rounded-xl bg-red-600/10 text-red-600 dark:bg-red-600/20 dark:text-red-400 flex items-center justify-center shrink-0">
-                                        <span className="material-symbols-outlined text-2xl">smart_display</span>
+                        <form onSubmit={handleQuickTranscribe} className="w-full max-w-3xl p-2 sm:p-3 rounded-2xl bg-white dark:bg-[#181C24]/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-lg dark:shadow-[0_12px_40px_rgba(0,0,0,0.7)] group relative mb-6">
+                            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+                                <div className="flex items-center gap-2 sm:gap-3 flex-1 w-full px-2 sm:px-3">
+                                    <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-600/10 text-red-600 dark:bg-red-600/20 dark:text-red-400 flex items-center justify-center shrink-0">
+                                        <span className="material-symbols-outlined text-xl sm:text-2xl">smart_display</span>
                                     </span>
                                     <div className="flex flex-col text-right w-full overflow-hidden">
-                                        <span className="text-[11px] font-mono text-slate-500 dark:text-[#BBCAFF]/70">
+                                        <span className="text-[10px] sm:text-[11px] font-mono text-slate-500 dark:text-[#BBCAFF]/70">
                                             {isRtl ? 'ضع رابط محاضرة أو فيديو يوتيوب هنا' : 'Paste YouTube Lecture URL here'}
                                         </span>
                                         <input
@@ -212,7 +282,7 @@ export default function Welcome() {
                                             value={data.url}
                                             onChange={(e) => setData('url', e.target.value)}
                                             placeholder={isRtl ? 'https://www.youtube.com/watch?v=...' : 'https://www.youtube.com/watch?v=...'}
-                                            className="bg-transparent border-0 text-slate-900 dark:text-white font-mono text-sm outline-none w-full placeholder:text-slate-400 dark:placeholder:text-white/30 focus:ring-0 p-0 py-1"
+                                            className="bg-transparent border-0 text-slate-900 dark:text-white font-mono text-xs sm:text-sm outline-none w-full placeholder:text-slate-400 dark:placeholder:text-white/30 focus:ring-0 p-0 py-1"
                                         />
                                     </div>
                                 </div>
@@ -220,9 +290,9 @@ export default function Welcome() {
                                 <button
                                     type="submit"
                                     disabled={processing}
-                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all shrink-0 cursor-pointer"
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.35)] transition-all shrink-0 cursor-pointer"
                                 >
-                                    <span className="material-symbols-outlined text-lg">auto_awesome</span>
+                                    <span className="material-symbols-outlined text-base sm:text-lg">auto_awesome</span>
                                     <span>{isRtl ? 'تفريغ وتلخيص المذكرة فوراً' : 'Transcribe & Generate Memo'}</span>
                                 </button>
                             </div>
@@ -233,25 +303,25 @@ export default function Welcome() {
                         </form>
 
                         {/* CTAs */}
-                        <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
+                        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-10 w-full px-2">
                             <a
                                 href="#plans"
-                                className="px-6 py-3 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all flex items-center gap-2"
+                                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2"
                             >
-                                <span className="material-symbols-outlined text-lg">rocket_launch</span>
+                                <span className="material-symbols-outlined text-base sm:text-lg">rocket_launch</span>
                                 <span>{isRtl ? 'ابدأ الآن' : 'Start Now'}</span>
                             </a>
                             <a
                                 href="#for-who"
-                                className="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-white font-semibold text-sm border border-slate-200 dark:border-white/10 transition-all flex items-center gap-2"
+                                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-white font-semibold text-xs sm:text-sm border border-slate-200 dark:border-white/10 transition-all flex items-center justify-center gap-2"
                             >
-                                <span className="material-symbols-outlined text-lg text-emerald-600 dark:text-[#4EDEA3]">explore</span>
+                                <span className="material-symbols-outlined text-base sm:text-lg text-emerald-600 dark:text-[#4EDEA3]">explore</span>
                                 <span>{isRtl ? 'اكتشف المميزات' : 'Explore Features'}</span>
                             </a>
                         </div>
 
                         {/* Trust Badges */}
-                        <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-mono text-slate-500 dark:text-[#BBCAFF]">
+                        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs font-mono text-slate-500 dark:text-[#BBCAFF] px-2">
                             <span className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">verified</span>
                                 {isRtl ? 'تفريغ يوتيوب فوري بالتوقيت الزمني' : 'Instant YouTube captions'}
@@ -276,26 +346,26 @@ export default function Welcome() {
                 </section>
 
                 {/* 2. Problem/Solution Section: "مش لازم تسمع كل دقيقة عشان تفهم المنهج" */}
-                <section id="for-who" className="max-w-6xl mx-auto px-6 py-20">
-                    <div className="text-center mb-14">
-                        <span className="px-4 py-1.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 text-xs font-mono font-bold uppercase tracking-wider inline-block mb-3">
+                <section id="for-who" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+                    <div className="text-center mb-10 sm:mb-14">
+                        <span className="px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 text-[11px] sm:text-xs font-mono font-bold uppercase tracking-wider inline-block mb-3">
                             {isRtl ? 'مش لازم تسمع كل دقيقة عشان تفهم المنهج' : 'Stop Wasting Hours Watching Every Minute'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1">
                             {isRtl ? 'وقتك للمذاكرة أهم من وقتك في مشاهدة الفيديوهات' : 'Your Study Time is Too Valuable to Waste'}
                         </h2>
-                        <p className="text-sm text-slate-600 dark:text-[#BBCAFF] max-w-2xl mx-auto mt-3">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] max-w-2xl mx-auto mt-2 sm:mt-3 px-2">
                             {isRtl
                                 ? 'سواء كنت طالباً تسابق الوقت ليلة الامتحان، أو مدرساً يريد توفير ساعات التحضير، فرغلي مصمم خصيصاً لاحتياجك.'
                                 : 'Whether you are a student preparing for finals or an educator creating class handouts, Farghly gives you hours back.'}
                         </p>
 
                         {/* Audience Interactive Switcher Buttons */}
-                        <div className="inline-flex p-1.5 rounded-2xl bg-slate-200/80 dark:bg-[#141822] border border-slate-300 dark:border-white/10 mt-8">
+                        <div className="inline-flex p-1 sm:p-1.5 rounded-xl sm:rounded-2xl bg-slate-200/80 dark:bg-[#141822] border border-slate-300 dark:border-white/10 mt-6 sm:mt-8 max-w-full">
                             <button
                                 type="button"
                                 onClick={() => setAudienceTab('students')}
-                                className={`px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${audienceTab === 'students'
+                                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer ${audienceTab === 'students'
                                         ? 'bg-[#10B981] text-[#003824] shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
                                     }`}
@@ -306,7 +376,7 @@ export default function Welcome() {
                             <button
                                 type="button"
                                 onClick={() => setAudienceTab('teachers')}
-                                className={`px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 cursor-pointer ${audienceTab === 'teachers'
+                                className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer ${audienceTab === 'teachers'
                                         ? 'bg-[#10B981] text-[#003824] shadow-[0_0_15px_rgba(16,185,129,0.3)]'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
                                     }`}
@@ -318,10 +388,10 @@ export default function Welcome() {
                     </div>
 
                     {/* Comparative Cards Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
                         {/* Students Card */}
                         <div
-                            className={`p-8 rounded-3xl bg-white dark:bg-[#141822] border transition-all flex flex-col justify-between text-right relative overflow-hidden ${audienceTab === 'students'
+                            className={`p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#141822] border transition-all flex flex-col justify-between text-right relative overflow-hidden ${audienceTab === 'students'
                                     ? 'border-[#10B981] ring-2 ring-[#10B981]/20 shadow-xl dark:shadow-[0_0_40px_rgba(16,185,129,0.12)]'
                                     : 'border-slate-200 dark:border-white/10 opacity-80 hover:opacity-100 shadow-sm'
                                 }`}
@@ -486,15 +556,15 @@ export default function Welcome() {
                 </section>
 
                 {/* 3. Core Tools Suite: "كل أدواتك التعليمية في منصة واحدة" */}
-                <section id="features" className="max-w-6xl mx-auto px-6 py-20">
-                    <div className="text-center mb-14">
+                <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+                    <div className="text-center mb-10 sm:mb-14">
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] uppercase tracking-wider font-bold">
                             {isRtl ? 'منظومة متكاملة' : 'Complete Toolchain'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2">
                             {isRtl ? 'كل أدواتك التعليمية في منصة واحدة' : 'All Your Educational Tools in One Platform'}
                         </h2>
-                        <p className="text-sm text-slate-600 dark:text-[#BBCAFF] max-w-xl mx-auto mt-2">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] max-w-xl mx-auto mt-2 px-2">
                             {isRtl ? 'من رابط الفيديو إلى مذكرة PDF جاهزة للطباعة والمذاكرة في 6 ركائز أساسية:' : 'From YouTube URL to a completed, print-ready PDF memo in 6 steps:'}
                         </p>
                     </div>
@@ -599,15 +669,15 @@ export default function Welcome() {
                 </section>
 
                 {/* 4. Interactive Studio Mockup & Workflow: "استوديو المذكرات الذكي" */}
-                <section id="studio-workflow" className="max-w-6xl mx-auto px-6 py-20">
-                    <div className="text-center mb-12">
+                <section id="studio-workflow" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+                    <div className="text-center mb-8 sm:mb-12">
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] uppercase tracking-wider font-bold">
                             {isRtl ? 'تجربة حية' : 'Live Interactive Preview'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2">
                             {isRtl ? 'استوديو المذكرات الذكي' : 'The Smart Memo Studio'}
                         </h2>
-                        <p className="text-sm text-slate-600 dark:text-[#BBCAFF] max-w-xl mx-auto mt-2">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] max-w-xl mx-auto mt-2 px-2">
                             {isRtl
                                 ? 'تخيّل أنك انتهيت من محاضرة مدتها ساعتان. بدلاً من قضاء وقت إضافي في كتابة كل شيء يدوياً، هذا ما يحدث في ثوانٍ:'
                                 : 'Imagine finishing a 2-hour lecture. Instead of spending hours taking manual notes, see the output in seconds:'}
@@ -615,44 +685,44 @@ export default function Welcome() {
                     </div>
 
                     {/* Interactive Studio Card */}
-                    <div className="rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 p-4 sm:p-8 shadow-xl dark:shadow-2xl relative overflow-hidden transition-colors">
+                    <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 p-3 sm:p-8 shadow-xl dark:shadow-2xl relative overflow-hidden transition-colors">
                         {/* Tab Switcher */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200 dark:border-white/10">
-                            <div className="flex items-center gap-3">
-                                <span className="w-3 h-3 rounded-full bg-[#10B981] animate-ping" />
-                                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-slate-200 dark:border-white/10">
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#10B981] animate-ping shrink-0" />
+                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                                     {isRtl ? 'معاينة المخرجات التعليمية' : 'Output Preview'}
                                 </span>
                             </div>
 
-                            <div className="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10 text-xs">
+                            <div className="w-full sm:w-auto overflow-x-auto no-scrollbar flex items-center p-1 rounded-xl bg-slate-100 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10 text-xs">
                                 <button
                                     type="button"
                                     onClick={() => setActiveStudioTab('memo')}
-                                    className={`px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${activeStudioTab === 'memo'
-                                            ? 'bg-[#10B981] text-[#003824] shadow'
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap ${activeStudioTab === 'memo'
+                                            ? 'bg-[#10B981] text-[#003824] shadow-xs'
                                             : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                 >
                                     <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                                    <span>{isRtl ? 'المذكرة المطبوعة (PDF)' : 'PDF Memo'}</span>
+                                    <span>{isRtl ? 'المذكرة المطبوعة' : 'PDF Memo'}</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setActiveStudioTab('summary')}
-                                    className={`px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${activeStudioTab === 'summary'
-                                            ? 'bg-[#10B981] text-[#003824] shadow'
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap ${activeStudioTab === 'summary'
+                                            ? 'bg-[#10B981] text-[#003824] shadow-xs'
                                             : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                 >
                                     <span className="material-symbols-outlined text-sm">psychology</span>
-                                    <span>{isRtl ? 'الملخص الذكي (AI)' : 'AI Summary'}</span>
+                                    <span>{isRtl ? 'الملخص الذكي' : 'AI Summary'}</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setActiveStudioTab('transcript')}
-                                    className={`px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${activeStudioTab === 'transcript'
-                                            ? 'bg-[#10B981] text-[#003824] shadow'
+                                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap ${activeStudioTab === 'transcript'
+                                            ? 'bg-[#10B981] text-[#003824] shadow-xs'
                                             : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
                                         }`}
                                 >
@@ -846,15 +916,15 @@ export default function Welcome() {
                 </section>
 
                 {/* 5. Custom Themes & Branding: "مذكراتك بتصميمك أنت" */}
-                <section id="custom-themes" className="max-w-6xl mx-auto px-6 py-20">
-                    <div className="text-center mb-14">
+                <section id="custom-themes" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+                    <div className="text-center mb-10 sm:mb-14">
                         <span className="text-xs font-mono text-amber-600 dark:text-[#FFB95F] uppercase tracking-wider font-bold">
                             {isRtl ? 'هوية بصرية مخصصة' : 'Unique Styling'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2">
                             {isRtl ? 'مذكراتك بتصميمك أنت' : 'Your Notes in Your Own Signature Style'}
                         </h2>
-                        <p className="text-sm text-slate-600 dark:text-[#BBCAFF] max-w-xl mx-auto mt-2">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] max-w-xl mx-auto mt-2 px-2">
                             {isRtl ? 'لأن كل مدرس له أسلوبه، وكل طالب له طريقته في المذاكرة:' : 'Because every teacher has their teaching identity, and every student has their study flow:'}
                         </p>
                     </div>
@@ -902,13 +972,13 @@ export default function Welcome() {
                     </div>
                 </section>
 
-                {/* 6. Target Audience Breakdown: "لمن صُممت منصة نَص تيوب؟" */}
-                <section className="max-w-6xl mx-auto px-6 py-20 border-t border-slate-200 dark:border-white/5">
-                    <div className="text-center mb-14">
+                {/* 6. Target Audience Breakdown */}
+                <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20 border-t border-slate-200 dark:border-white/5">
+                    <div className="text-center mb-10 sm:mb-14">
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] uppercase tracking-wider font-bold">
                             {isRtl ? 'الشرائح المستهدفة' : 'Who is it for?'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2">
                             {isRtl ? 'لمن صُممت منصة فرغلي؟' : 'Who is Farghly Built For?'}
                         </h2>
                     </div>
@@ -972,22 +1042,22 @@ export default function Welcome() {
                 </section>
 
                 {/* 7. Pricing / Subscription Plans */}
-                <section id="plans" className="max-w-6xl mx-auto px-6 py-20">
-                    <div className="text-center mb-12">
+                <section id="plans" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+                    <div className="text-center mb-10 sm:mb-12">
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] uppercase tracking-wider font-bold">
                             {isRtl ? 'باقات تناسب احتياجاتك' : 'Flexible Subscriptions'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-2">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-1 sm:mt-2">
                             {isRtl ? 'ابدأ بما تحتاج إليه، وطوّر استخدامك مع الوقت' : 'Start with What You Need, Upgrade Anytime'}
                         </h2>
-                        <p className="text-xs text-amber-700 dark:text-[#FFB95F] mt-2 font-mono">
+                        <p className="text-xs text-amber-700 dark:text-[#FFB95F] mt-2 font-mono px-2">
                             {isRtl ? '✦ يتم تفعيل الاشتراكات والتجديد مباشرة بالتنسيق مع إدارة المبيعات' : '✦ Direct activation and renewal via dedicated sales desk'}
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
                         {/* Plan 1: Student */}
-                        <div className="p-8 rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 flex flex-col justify-between text-right shadow-sm dark:shadow-none">
+                        <div className="p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 flex flex-col justify-between text-right shadow-sm dark:shadow-none">
                             <div>
                                 <span className="text-xs font-mono text-slate-500 dark:text-[#BBCAFF] uppercase font-bold">
                                     {isRtl ? 'باقة الطالب' : 'Student Pack'}
@@ -1034,8 +1104,8 @@ export default function Welcome() {
                         </div>
 
                         {/* Plan 2: Teacher (Highlighted) */}
-                        <div className="p-8 rounded-3xl bg-white dark:bg-[#181C24] border-2 border-emerald-500 relative shadow-xl dark:shadow-[0_0_40px_rgba(16,185,129,0.18)] flex flex-col justify-between text-right">
-                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#10B981] text-[#003824] font-mono text-xs font-bold uppercase shadow-sm">
+                        <div className="p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#181C24] border-2 border-emerald-500 relative shadow-xl dark:shadow-[0_0_40px_rgba(16,185,129,0.18)] flex flex-col justify-between text-right">
+                            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 sm:px-4 py-1 rounded-full bg-[#10B981] text-[#003824] font-mono text-[10px] sm:text-xs font-bold uppercase shadow-sm whitespace-nowrap">
                                 {isRtl ? 'الأكثر اختياراً للمدرسين' : 'Most Popular for Teachers'}
                             </div>
 
@@ -1043,7 +1113,7 @@ export default function Welcome() {
                                 <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] uppercase font-bold">
                                     {isRtl ? 'باقة المدرس' : 'Teacher Pro'}
                                 </span>
-                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-2">
                                     {isRtl ? 'إعداد وطباعة المذكرات' : 'Full Course Builder'}
                                 </h3>
                                 <p className="text-xs text-slate-600 dark:text-[#BBCAFF] mt-2">
@@ -1052,27 +1122,27 @@ export default function Welcome() {
 
                                 <ul className="mt-6 space-y-3.5 text-xs sm:text-sm text-slate-700 dark:text-[#BBCAFF]">
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'رصيد مضاعف لتفريغ عشرات الساعات' : 'Expanded quota for dozens of lecture hours'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'تلخيص المحتوى وإنشاء مسودات المذكرات' : 'AI summarization & instant memo drafting'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'تصدير ملفات PDF بدقة طباعة 300 DPI جاهزة للمطبعة' : 'Print-ready 300 DPI PDF memo exports'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'تخصيص كامل لألوان المذكرة والخطوط العربية' : 'Full color & Arabic print font customization'}</span>
                                     </li>
                                     <li className="flex items-center gap-2 text-slate-900 dark:text-white font-bold">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'إضافة شعار المدرس واسمه وهويته البصرية' : 'Custom teacher logo, branding & header/footer'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'تصدير ترجمات SRT و VTT لقناة اليوتيوب' : 'SRT & VTT subtitle export for YouTube'}</span>
                                     </li>
                                 </ul>
@@ -1089,12 +1159,12 @@ export default function Welcome() {
                         </div>
 
                         {/* Plan 3: Academy */}
-                        <div className="p-8 rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 flex flex-col justify-between text-right shadow-sm dark:shadow-none">
+                        <div className="p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 flex flex-col justify-between text-right shadow-sm dark:shadow-none">
                             <div>
                                 <span className="text-xs font-mono text-amber-600 dark:text-[#FFB95F] uppercase font-bold">
                                     {isRtl ? 'باقة الأكاديميات والمؤسسات' : 'Academy Enterprise'}
                                 </span>
-                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
+                                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-2">
                                     {isRtl ? 'سعة مؤسسية ضخمة' : 'High Volume'}
                                 </h3>
                                 <p className="text-xs text-slate-600 dark:text-[#BBCAFF] mt-2">
@@ -1103,23 +1173,23 @@ export default function Welcome() {
 
                                 <ul className="mt-6 space-y-3.5 text-xs sm:text-sm text-slate-700 dark:text-[#BBCAFF]">
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'سعة استخدام شهرية موسعة تناسب حجم عملكم' : 'High-volume monthly usage for institutions'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'تنظيم المحتوى ومساحات عمل متعددة للمدرسين' : 'Multi-seat teacher workspaces & content library'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'قوالب HTML وهوية بصرية مخصصة بالكامل' : 'Custom HTML templates & bespoke visual branding'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'إضافة شعارات الأكاديمية والسنتر على كافة الأوراق' : 'Official center/academy logo on all course notes'}</span>
                                     </li>
                                     <li className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm">check</span>
+                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-sm shrink-0">check</span>
                                         <span>{isRtl ? 'مدير حساب مخصص وفواتير دورية معتمدة' : 'Dedicated account manager & official invoices'}</span>
                                     </li>
                                 </ul>
@@ -1138,17 +1208,17 @@ export default function Welcome() {
                 </section>
 
                 {/* 8. FAQ Section */}
-                <section id="faq" className="max-w-4xl mx-auto px-6 py-20">
-                    <div className="text-center mb-12">
+                <section id="faq" className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+                    <div className="text-center mb-8 sm:mb-12">
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] uppercase tracking-wider font-bold">
                             {isRtl ? 'الأسئلة الشائعة' : 'FAQ'}
                         </span>
-                        <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-2">
                             {isRtl ? 'إجابات على كل ما يهمك' : 'Frequently Asked Questions'}
                         </h2>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                         {[
                             {
                                 q: isRtl ? 'هل يمكنني تحويل فيديو يوتيوب إلى نص مكتوب؟' : 'Can I transcribe any YouTube video into text?',
@@ -1193,18 +1263,18 @@ export default function Welcome() {
                                     : 'Yes. Farghly is fully responsive and runs smoothly on smartphone browsers, tablets, and desktops, with exported PDFs optimized for reading on any screen.',
                             },
                         ].map((item, idx) => (
-                            <div key={idx} className="rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors">
+                            <div key={idx} className="rounded-xl sm:rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm dark:shadow-none transition-colors">
                                 <button
                                     onClick={() => toggleFaq(idx)}
-                                    className={`w-full p-5 ${isRtl ? 'text-right' : 'text-left'} font-bold text-slate-900 dark:text-white flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer`}
+                                    className={`w-full p-4 sm:p-5 ${isRtl ? 'text-right' : 'text-left'} font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer gap-2`}
                                 >
                                     <span>{item.q}</span>
-                                    <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] transition-transform">
+                                    <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] transition-transform shrink-0">
                                         {faqOpen === idx ? 'expand_less' : 'expand_more'}
                                     </span>
                                 </button>
                                 {faqOpen === idx && (
-                                    <div className={`px-5 pb-5 text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] ${isRtl ? 'text-right' : 'text-left'} leading-relaxed border-t border-slate-100 dark:border-white/5 pt-3`}>
+                                    <div className={`px-4 sm:px-5 pb-4 sm:pb-5 text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] ${isRtl ? 'text-right' : 'text-left'} leading-relaxed border-t border-slate-100 dark:border-white/5 pt-3`}>
                                         {item.a}
                                     </div>
                                 )}
@@ -1214,36 +1284,36 @@ export default function Welcome() {
                 </section>
 
                 {/* 9. Final High Impact Call to Action */}
-                <section id="contact-sales" className="max-w-4xl mx-auto px-6 pb-28">
-                    <div className="rounded-3xl bg-gradient-to-tr from-white via-slate-50 to-emerald-50/40 dark:from-[#141822] dark:to-[#1C2028] border border-emerald-500/30 p-8 sm:p-12 text-center relative overflow-hidden shadow-xl dark:shadow-2xl transition-colors">
+                <section id="contact-sales" className="max-w-4xl mx-auto px-4 sm:px-6 pb-16 sm:pb-28">
+                    <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-tr from-white via-slate-50 to-emerald-50/40 dark:from-[#141822] dark:to-[#1C2028] border border-emerald-500/30 p-5 sm:p-12 text-center relative overflow-hidden shadow-xl dark:shadow-2xl transition-colors">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 dark:bg-[#10B981]/15 rounded-full blur-[90px] pointer-events-none" />
 
                         <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold uppercase tracking-wider">
                             {isRtl ? 'ابدأ الآن واستغل وقتك بشكل أفضل' : 'Start Today & Learn Faster'}
                         </span>
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-3 mb-4">
+                        <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mt-3 mb-4">
                             {isRtl ? 'عندك محاضرات كثيرة؟ أو مذكرات محتاج تجهزها؟' : 'Have Piles of Lectures to Watch or Notes to Prepare?'}
                         </h2>
-                        <p className="text-sm sm:text-base text-slate-600 dark:text-[#BBCAFF] max-w-2xl mx-auto mb-8 leading-relaxed">
+                        <p className="text-xs sm:text-base text-slate-600 dark:text-[#BBCAFF] max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed">
                             {isRtl
                                 ? 'لا تجعل الساعات الطويلة التي تقضيها في مشاهدة الفيديوهات أو تفريغها يدوياً تستهلك وقت المذاكرة أو التحضير للشرح. حوّل المحتوى إلى مذكرات منظمة بهويتك الخاصة الآن.'
                                 : 'Stop spending entire days manually listening and typing. Transform videos into organized, branded study memos in minutes.'}
                         </p>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                             <a
                                 href={`https://wa.me/201129274930?text=${encodeURIComponent(isRtl ? 'مرحباً، أرغب في الاستفسار عن اشتراك منصة فرغلي' : 'Hello, I would like to inquire about subscribing to Farghly')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.35)] transition-all"
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_24px_rgba(16,185,129,0.35)] transition-all"
                             >
-                                <span className="material-symbols-outlined text-xl">chat</span>
+                                <span className="material-symbols-outlined text-lg sm:text-xl">chat</span>
                                 <span>{isRtl ? 'تواصل عبر واتساب المبيعات فوراً' : 'Chat with Sales on WhatsApp'}</span>
                             </a>
 
                             <Link
                                 href={route('login')}
-                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-white font-semibold text-sm border border-slate-300 dark:border-white/10 transition-all"
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-white font-semibold text-xs sm:text-sm border border-slate-300 dark:border-white/10 transition-all"
                             >
                                 <span className="material-symbols-outlined text-base">lock</span>
                                 <span>{isRtl ? 'دخول المشتركين' : 'Subscriber Login'}</span>
@@ -1254,10 +1324,10 @@ export default function Welcome() {
             </main>
 
             {/* Footer */}
-            <footer className="border-t border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#070A10] py-12 px-6 transition-colors">
+            <footer className="border-t border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#070A10] py-8 sm:py-12 px-4 sm:px-6 transition-colors">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-slate-600 dark:text-[#BBCAFF]/70">
                     <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center text-[#003824] font-black text-sm">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center text-[#003824] font-black text-sm shrink-0">
                             {isRtl ? 'ف' : 'F'}
                         </div>
                         <div className={`flex flex-col ${isRtl ? 'text-right' : 'text-left'}`}>
@@ -1268,13 +1338,13 @@ export default function Welcome() {
                         </div>
                     </div>
 
-                    <p className="text-center max-w-md">
+                    <p className="text-center max-w-md text-xs">
                         {isRtl
                             ? 'منصة تساعد الطلاب والمدرسين على تفريغ المحتوى التعليمي وتلخيصه وتنظيمه وتحويله إلى مستندات قابلة للتخصيص والطباعة.'
                             : 'An AI platform empowering students and educators to transcribe, summarize, and transform video lectures into branded study memos.'}
                     </p>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center justify-center gap-4">
                         <a href="#plans" className="hover:text-slate-900 dark:hover:text-white transition-colors">{isRtl ? 'الباقات' : 'Plans'}</a>
                         <a href="#faq" className="hover:text-slate-900 dark:hover:text-white transition-colors">{isRtl ? 'الأسئلة الشائعة' : 'FAQ'}</a>
                         <Link href={route('login')} className="hover:text-slate-900 dark:hover:text-white transition-colors">{isRtl ? 'دخول المشتركين' : 'Login'}</Link>
