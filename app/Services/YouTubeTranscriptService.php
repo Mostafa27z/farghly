@@ -90,6 +90,10 @@ class YouTubeTranscriptService
         $xmlBody = $this->fetchTimedTextXml($selectedTrack['baseUrl']);
 
         if (empty($xmlBody)) {
+            if ($fallback = $this->extractViaFallbackApi($videoId)) {
+                return $fallback;
+            }
+
             return [
                 'success' => false,
                 'code' => 'EMPTY_TIMEDTEXT',
@@ -396,22 +400,71 @@ class YouTubeTranscriptService
      */
     protected function fetchTimedTextXml(string $baseUrl): ?string
     {
-        try {
-            $response = $this->http(20)
-                ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36,gzip(gfe)',
-                ])
-                ->get($baseUrl);
+        $base = preg_replace('/&fmt=[^&]*/', '', $baseUrl);
 
-            if ($response->successful()) {
-                return $response->body();
+        $variants = [
+            ['label' => 'asis', 'url' => $baseUrl, 'ua' => self::USER_AGENT],
+            ['label' => 'srv3', 'url' => $base . '&fmt=srv3', 'ua' => self::USER_AGENT],
+            ['label' => 'json3', 'url' => $base . '&fmt=json3', 'ua' => self::USER_AGENT],
+            ['label' => 'classic', 'url' => $base, 'ua' => 'com.google.android.youtube/' . self::INNERTUBE_CLIENT_VERSION . ' (Linux; U; Android 14)'],
+        ];
+
+        foreach ($variants as $v) {
+            $diag = ['client' => 'TIMEDTEXT:' . $v['label']];
+
+            try {
+                $response = $this->http(20)
+                    ->withHeaders([
+                        'User-Agent' => $v['ua'],
+                        'Accept-Language' => 'en-US,en;q=0.9',
+                        'Referer' => 'https://www.youtube.com/',
+                    ])
+                    ->get($v['url']);
+
+                $body = $response->body();
+                $diag['http_status'] = $response->status();
+                $diag['reason'] = 'bytes=' . strlen($body);
+
+                if ($response->successful() && trim($body) !== '') {
+                    // Convert json3 into classic <text> XML so the existing parser can consume it
+                    if ($v['label'] === 'json3') {
+                        $json = json_decode($body, true);
+                        $xml = '';
+                        foreach (($json['events'] ?? []) as $ev) {
+                            if (empty($ev['segs'])) {
+                                continue;
+                            }
+                            $text = '';
+                            foreach ($ev['segs'] as $seg) {
+                                $text .= $seg['utf8'] ?? '';
+                            }
+                            $text = trim($text);
+                            if ($text === '') {
+                                continue;
+                            }
+                            $start = ($ev['tStartMs'] ?? 0) / 1000;
+                            $dur = ($ev['dDurationMs'] ?? 0) / 1000;
+                            $xml .= '<text start="' . $start . '" dur="' . $dur . '">' . htmlspecialchars($text, ENT_XML1) . '</text>';
+                        }
+                        $body = $xml;
+                    }
+
+                    if (trim($body) !== '') {
+                        $this->diagnostics[] = $diag + ['tracks' => 1];
+                        return $body;
+                    }
+                }
+            } catch (\Throwable $e) {
+                $diag['error'] = $e->getMessage();
+                Log::warning("TimedText fetch failed ({$v['label']}): {$e->getMessage()}");
             }
-        } catch (\Throwable $e) {
-            Log::warning("TimedText XML fetch failed: {$e->getMessage()}");
+
+            $this->diagnostics[] = $diag;
         }
 
         return null;
     }
+
 
     /**
      * Parse transcript XML (supports modern srv3 format <p t="..." d="..."> and classic <text start="..." dur="...">).
