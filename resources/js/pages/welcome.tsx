@@ -46,14 +46,14 @@ export default function Welcome() {
             <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#0A0E16]/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 shadow-xs dark:shadow-[0_4px_24px_rgba(0,0,0,0.6)] transition-colors">
                 <div className="max-w-7xl mx-auto h-16 sm:h-20 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-4">
                     {/* Brand */}
-                    <div className="flex items-center gap-3 sm:gap-6">
+                    <div className="flex items-center gap-2 sm:gap-6 shrink-0">
                         <Link href="/" className="flex items-center gap-2 sm:gap-3 group shrink-0">
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform shrink-0">
-                                <span className="material-symbols-outlined text-[#003824] text-xl sm:text-2xl font-bold">menu_book</span>
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.35)] group-hover:scale-105 transition-transform shrink-0">
+                                <span className="material-symbols-outlined text-[#003824] text-lg sm:text-2xl font-bold">menu_book</span>
                             </div>
                             <div className="flex flex-col text-right">
-                                <span className="font-extrabold text-base sm:text-xl text-slate-900 dark:text-white tracking-tight leading-tight">{isRtl ? 'فرغلي' : 'Farghly'}</span>
-                                <span className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-[#4EDEA3] tracking-widest font-mono font-bold uppercase">{isRtl ? 'فرغلي AI' : 'FARGHLY AI'}</span>
+                                <span className="font-extrabold text-sm sm:text-xl text-slate-900 dark:text-white tracking-tight leading-tight">{isRtl ? 'فرغلي' : 'Farghly'}</span>
+                                <span className="hidden sm:block text-[9px] sm:text-[10px] text-emerald-600 dark:text-[#4EDEA3] tracking-widest font-mono font-bold uppercase">{isRtl ? 'فرغلي AI' : 'FARGHLY AI'}</span>
                             </div>
                         </Link>
 
@@ -80,47 +80,52 @@ export default function Welcome() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1.5 sm:gap-2.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                         {/* Theme Toggle Button */}
                         <ThemeToggle />
 
-                        {/* Language Switcher */}
+                        {/* Language Switcher (Compact abbreviation on mobile) */}
                         <button
                             type="button"
                             onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-                            className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs font-mono text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:border-emerald-500/40 transition-all cursor-pointer shrink-0"
+                            className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-full bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-[11px] sm:text-xs font-mono text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:border-emerald-500/40 transition-all cursor-pointer shrink-0"
+                            title={isRtl ? 'تغيير اللغة' : 'Change Language'}
                         >
-                            <span className={isRtl ? 'text-emerald-600 dark:text-[#4EDEA3] font-bold' : ''}>العربية</span>
-                            <span className="text-slate-300 dark:text-white/20">|</span>
-                            <span className={!isRtl ? 'text-emerald-600 dark:text-[#4EDEA3] font-bold' : ''}>EN</span>
+                            <span className="sm:hidden font-bold text-emerald-600 dark:text-[#4EDEA3]">{isRtl ? 'EN' : 'عربي'}</span>
+                            <span className="hidden sm:inline">
+                                <span className={isRtl ? 'text-emerald-600 dark:text-[#4EDEA3] font-bold' : ''}>العربية</span>
+                                <span className="text-slate-300 dark:text-white/20 mx-1">|</span>
+                                <span className={!isRtl ? 'text-emerald-600 dark:text-[#4EDEA3] font-bold' : ''}>EN</span>
+                            </span>
                         </button>
 
                         {auth.user ? (
                             auth.is_super_admin || auth.user.system_role === 'super_admin' ? (
                                 <Link
                                     href={route('admin.dashboard')}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
+                                    className="flex items-center justify-center gap-1 p-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
+                                    title={isRtl ? 'لوحة الإدارة' : 'Admin'}
                                 >
-                                    <span className="material-symbols-outlined text-base sm:text-lg">admin_panel_settings</span>
-                                    <span className="hidden sm:inline">لوحة الإدارة</span>
-                                    <span className="sm:hidden">الإدارة</span>
+                                    <span className="material-symbols-outlined text-lg">admin_panel_settings</span>
+                                    <span className="hidden sm:inline">{isRtl ? 'لوحة الإدارة' : 'Admin'}</span>
                                 </Link>
                             ) : auth.is_sales || auth.user.system_role === 'sales' ? (
                                 <Link
                                     href={route('sales.index')}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
+                                    className="flex items-center justify-center gap-1 p-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
+                                    title={isRtl ? 'بوابة المبيعات' : 'Sales'}
                                 >
-                                    <span className="material-symbols-outlined text-base sm:text-lg">point_of_sale</span>
-                                    <span className="hidden sm:inline">بوابة المبيعات</span>
-                                    <span className="sm:hidden">المبيعات</span>
+                                    <span className="material-symbols-outlined text-lg">point_of_sale</span>
+                                    <span className="hidden sm:inline">{isRtl ? 'بوابة المبيعات' : 'Sales'}</span>
                                 </Link>
                             ) : (
                                 <Link
                                     href={route('dashboard')}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
+                                    className="flex items-center justify-center gap-1 p-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all shrink-0 whitespace-nowrap"
+                                    title={isRtl ? 'مساحة العمل' : 'Workspace'}
                                 >
-                                    <span className="material-symbols-outlined text-base sm:text-lg">space_dashboard</span>
-                                    <span>{isRtl ? 'مساحة العمل' : 'Workspace'}</span>
+                                    <span className="material-symbols-outlined text-lg">space_dashboard</span>
+                                    <span className="hidden sm:inline">{isRtl ? 'مساحة العمل' : 'Workspace'}</span>
                                 </Link>
                             )
                         ) : (
@@ -135,9 +140,11 @@ export default function Welcome() {
 
                                 <a
                                     href="#plans"
-                                    className="flex items-center justify-center px-3.5 py-1.5 sm:px-4.5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.02] transition-all shrink-0 whitespace-nowrap"
+                                    className="flex items-center justify-center gap-1 px-3 py-1.5 sm:px-4.5 sm:py-2 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.02] transition-all shrink-0 whitespace-nowrap"
                                 >
-                                    <span>{isRtl ? 'ابدأ الآن' : 'Get Started'}</span>
+                                    <span className="material-symbols-outlined text-base sm:hidden">bolt</span>
+                                    <span className="hidden sm:inline">{isRtl ? 'ابدأ الآن' : 'Get Started'}</span>
+                                    <span className="sm:hidden">{isRtl ? 'ابدأ' : 'Start'}</span>
                                 </a>
                             </>
                         )}
@@ -149,7 +156,7 @@ export default function Welcome() {
                             className="lg:hidden p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-[#BBCAFF] transition-colors cursor-pointer shrink-0"
                             aria-label="القائمة"
                         >
-                            <span className="material-symbols-outlined text-2xl">{mobileMenuOpen ? 'close' : 'menu'}</span>
+                            <span className="material-symbols-outlined text-xl sm:text-2xl">{mobileMenuOpen ? 'close' : 'menu'}</span>
                         </button>
                     </div>
                 </div>
