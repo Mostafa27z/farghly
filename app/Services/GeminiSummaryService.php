@@ -106,6 +106,187 @@ class GeminiSummaryService
     }
 
     /**
+     * Perform full linguistic proofreading, grammar correction, and structural formatting of the entire transcript.
+     * Unlike summarization, this preserves the entire content and all details verbatim,
+     * while improving Arabic grammar, spelling, punctuation, paragraph breaks, and headings.
+     */
+    public function proofread(
+        Transcript $transcript,
+        ?string $customInstructions = null
+    ): array {
+        if (empty($this->apiKey)) {
+            return [
+                'success' => false,
+                'message_ar' => 'مفتاح Gemini API غير معرف في ملف .env.',
+                'message_en' => 'Gemini API key is missing.',
+            ];
+        }
+
+        $fullText = trim($transcript->full_text ?? '');
+        if ($fullText === '') {
+            return [
+                'success' => false,
+                'message_ar' => 'لا يوجد نص متاح في هذا الفيديو لإجراء التدقيق اللغوي.',
+                'message_en' => 'No transcript text available for proofreading.',
+            ];
+        }
+
+        try {
+            $chunks = $this->splitTextForProofreading($fullText, 14000);
+            $totalChunks = count($chunks);
+            $combinedHtml = '';
+
+            foreach ($chunks as $index => $chunkText) {
+                $partNum = $index + 1;
+                $prompt = $this->buildProofreadPrompt($transcript, $chunkText, $partNum, $totalChunks, $customInstructions);
+                $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}";
+
+                $response = Http::timeout(120)
+                    ->withHeaders(['Content-Type' => 'application/json'])
+                    ->post($apiUrl, [
+                        'contents' => [
+                            [
+                                'parts' => [
+                                    ['text' => $prompt],
+                                ],
+                            ],
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.3,
+                            'maxOutputTokens' => 8192,
+                        ],
+                    ]);
+
+                if (!$response->successful()) {
+                    Log::error('Gemini proofread API call failed', [
+                        'status' => $response->status(),
+                        'error' => $response->body(),
+                    ]);
+
+                    return [
+                        'success' => false,
+                        'message_ar' => 'فشل الاتصال بخدمة الذكاء الاصطناعي أثناء التدقيق اللغوي: ' . ($response->json()['error']['message'] ?? 'خطأ غير معروف'),
+                        'message_en' => 'Gemini proofread request failed.',
+                    ];
+                }
+
+                $rawText = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? '';
+                $chunkHtml = $this->cleanHtmlOutput($rawText);
+
+                if (!empty($chunkHtml)) {
+                    $combinedHtml .= ($combinedHtml ? "\n\n" : '') . $chunkHtml;
+                }
+            }
+
+            if (empty($combinedHtml)) {
+                return [
+                    'success' => false,
+                    'message_ar' => 'لم يتم إرجاع نص مدقق صالح من الذكاء الاصطناعي.',
+                    'message_en' => 'No proofread content returned from AI.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'proofread_html' => $combinedHtml,
+                'plain_text' => trim(strip_tags($combinedHtml)),
+            ];
+        } catch (\Throwable $e) {
+            Log::error("Gemini proofread exception: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+
+            return [
+                'success' => false,
+                'message_ar' => 'حدث خطأ غير متوقع أثناء التدقيق اللغوي: ' . $e->getMessage(),
+                'message_en' => 'An exception occurred during proofreading.',
+            ];
+        }
+    }
+
+    /**
+     * Split long transcript into logical chunks for complete proofreading without truncation.
+     */
+    protected function splitTextForProofreading(string $text, int $maxChunkSize = 14000): array
+    {
+        if (mb_strlen($text) <= $maxChunkSize) {
+            return [$text];
+        }
+
+        $chunks = [];
+        $remaining = $text;
+
+        while (mb_strlen($remaining) > $maxChunkSize) {
+            $cutPos = mb_strrpos(mb_substr($remaining, 0, $maxChunkSize), '.');
+            if ($cutPos === false || $cutPos < ($maxChunkSize * 0.6)) {
+                $cutPos = mb_strrpos(mb_substr($remaining, 0, $maxChunkSize), "\n");
+            }
+            if ($cutPos === false || $cutPos < ($maxChunkSize * 0.6)) {
+                $cutPos = mb_strrpos(mb_substr($remaining, 0, $maxChunkSize), ' ');
+            }
+            if ($cutPos === false) {
+                $cutPos = $maxChunkSize;
+            } else {
+                $cutPos += 1;
+            }
+
+            $chunks[] = trim(mb_substr($remaining, 0, $cutPos));
+            $remaining = trim(mb_substr($remaining, $cutPos));
+        }
+
+        if ($remaining !== '') {
+            $chunks[] = $remaining;
+        }
+
+        return $chunks;
+    }
+
+    /**
+     * Build strict proofreading prompt preserving all content verbatim while correcting grammar and formatting.
+     */
+    protected function buildProofreadPrompt(
+        Transcript $transcript,
+        string $textChunk,
+        int $partNum,
+        int $totalParts,
+        ?string $customInstructions = null
+    ): string {
+        $partNotice = $totalParts > 1 ? "ملاحظة هامة: هذا هو الجزء ({$partNum} من {$totalParts}) من النص الكامل للمادة.\n" : '';
+        $userDirectives = $customInstructions ? "\n\nتوجيهات إضافية خاصة من المستخدم:\n\"{$customInstructions}\"" : '';
+
+        return <<<PROMPT
+أنت كبير المدققين اللغويين والمحررين المتخصصين في اللغة العربية الفصحى وتوثيق المحاضرات والندوات.
+المهمة: قم بإجراء تدقيق لغوي وإملائي ونحوي شامل وتنسيق تحريري للنص المفرغ التالي من فيديو اليوتيوب، مع **الحفاظ التام والكامل على كافة تفاصيل المحتوى دون أي حذف أو تلخيص أو اختصار**.
+
+بيانات الفيديو:
+- العنوان: {$transcript->title}
+- القناة / المتحدث: {$transcript->channel_name}
+{$partNotice}
+تعليمات التدقيق والتحرير المطلوبة بدقة بالغة (CRITICAL):
+1. **الأمانة التامة للنص كاملاً (No Summarization / Verbatim Fidelity)**:
+   - هذا تدقيق لغوي وتنسيقي وليس تلخيصاً إطلاقاً! يجب أن يظل النص كاملاً ومفصلاً وشاملاً لكل نقطة ومثال ودليل وقصة وشرح ذكره المتحدث في هذا الجزء.
+2. **التدقيق الإملائي والنحوي والأسلوبي**:
+   - تصحيح جميع الأخطاء الإملائية (همزات الوصل والقطع، التاء المربوطة والمفتوحة، الألف المقصورة، علامات التنوين).
+   - تحويل الكلمات العامية أو العبارات الدارجة إلى ما يقابلها بالفصحى بما يحافظ على السياق والمعنى الأصلي بدقة.
+   - تصحيح التراكيب اللغوية الركيكة الناتجة عن التفريغ الصوتي التلقائي وصياغتها بأسلوب عربي فصيح وبليغ ومترابط.
+3. **التنظيف من عيوب الإلقاء الشفهي**:
+   - حذف اللزمات الكلامية والحشوات العفوية المتكررة (مثل: يعني، طيب، إيه، أه، بص حضرتك، كما قلت لكم مراراً في نفس السطر) والتكرار التلقائي العفوي للكلمة الواحدة.
+4. **علامات الترقيم وتوزيع الفقرات**:
+   - وضع علامات الترقيم في مواضعها الصحيحة (النقطة، الفاصلة، النقطتان الرأسيتان، علامات الاستفهام والتعجب).
+   - تقسيم النص الطويل إلى فقرات متناسقة منطقياً (3 إلى 5 أسطر لكل فقرة).
+   - وضع عناوين فرعية مناسبة (<h3>) عند الانتقال بين محاور الحديث لتسهيل القراءة وتنسيق المستند.
+5. **التنسيق البرمجي (Semantic HTML)**:
+   - أخرج النتيجة مباشرة بصيغة وسوم HTML دلالية نظيفة (بدون <html> أو <body> أو <head>).
+   - ابدأ بـ <h2> كعنوان رئيسي إن كان هذا الجزء الأول، واستخدم <h3> للعناوين الفرعية للمحاور.
+   - استخدم <p> للفقرات.
+   - استخدم <blockquote> للاقتباسات أو الآيات أو الأحاديث إن وجدت.
+   - لا تبدأ بأي عبارات تقديمية مثل "إليك النص المدقق" ولا تضع شروحات. ابدأ مباشرة بوسوم HTML.
+{$userDirectives}
+
+النص المراد تدقيقه:
+{$textChunk}
+PROMPT;
+    }
+
+    /**
      * Build contextual Arabic prompt for Gemini.
      */
     protected function buildPrompt(Transcript $transcript, string $style, ?string $customInstructions): string

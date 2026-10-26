@@ -26,6 +26,9 @@ interface TranscriptData {
     summary_style?: string | null;
     summary_prompt?: string | null;
     summary_generated_at?: string | null;
+    proofread_html?: string | null;
+    proofread_text?: string | null;
+    proofread_generated_at?: string | null;
     created_at: string;
 }
 
@@ -50,12 +53,16 @@ interface Props {
 }
 
 export default function TranscriptShow({ transcript, tenant, themes = [], systemPresets = {} }: Props) {
-    const [activeTab, setActiveTab] = useState<'transcript' | 'summary'>('transcript');
+    const [activeTab, setActiveTab] = useState<'transcript' | 'proofread' | 'summary'>(
+        transcript.proofread_html ? 'proofread' : (transcript.summary_html ? 'summary' : 'transcript')
+    );
     const [searchTerm, setSearchTerm] = useState('');
     const [copied, setCopied] = useState(false);
     const [copiedSummary, setCopiedSummary] = useState(false);
+    const [copiedProofread, setCopiedProofread] = useState(false);
     const [activeTimestamp, setActiveTimestamp] = useState<number | null>(null);
     const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [showProofreadModal, setShowProofreadModal] = useState(false);
 
     // Default to the tenant's default theme if set, otherwise 'obsidian'
     const initialThemeId = themes.find(t => t.is_default)?.id || 'obsidian';
@@ -67,6 +74,10 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
         style: transcript.summary_style || 'executive',
         prompt: transcript.summary_prompt || '',
         theme: initialThemeId,
+    });
+
+    const { data: proofreadData, setData: setProofreadData, post: postProofread, processing: proofreading } = useForm({
+        prompt: '',
     });
 
     const segments = transcript.segments || [];
@@ -95,12 +106,29 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
         setTimeout(() => setCopiedSummary(false), 2500);
     };
 
+    const copyProofread = () => {
+        if (!transcript.proofread_text) return;
+        navigator.clipboard.writeText(transcript.proofread_text);
+        setCopiedProofread(true);
+        setTimeout(() => setCopiedProofread(false), 2500);
+    };
+
     const handleGenerateSummary = (e: React.FormEvent) => {
         e.preventDefault();
         postSummary(route('transcripts.summarize', transcript.id), {
             onSuccess: () => {
                 setShowSummaryModal(false);
                 setActiveTab('summary');
+            },
+        });
+    };
+
+    const handleGenerateProofread = (e: React.FormEvent) => {
+        e.preventDefault();
+        postProofread(route('transcripts.proofread', transcript.id), {
+            onSuccess: () => {
+                setShowProofreadModal(false);
+                setActiveTab('proofread');
             },
         });
     };
@@ -181,6 +209,16 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         {/* Theme Toggle Button */}
                         <ThemeToggle />
 
+                        {/* Full Text Linguistic Proofread Button */}
+                        <button
+                            type="button"
+                            onClick={() => setShowProofreadModal(true)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 dark:text-[#4EDEA3] font-bold text-xs transition-all cursor-pointer"
+                        >
+                            <span className="material-symbols-outlined text-base">spellcheck</span>
+                            <span>{transcript.proofread_html ? 'إعادة التدقيق اللغوي الكامل' : 'تدقيق النص بالكامل (AI)'}</span>
+                        </button>
+
                         {/* Gemini Summary Button */}
                         <button
                             type="button"
@@ -188,19 +226,34 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-l from-[#10B981] to-[#4EDEA3] text-[#003824] font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_28px_rgba(16,185,129,0.5)] transition-all cursor-pointer"
                         >
                             <span className="material-symbols-outlined text-base">auto_awesome</span>
-                            <span>{transcript.summary_html ? 'إعادة التلخيص بالذكاء الاصطناعي' : 'توليد ملخص ومستند PDF'}</span>
+                            <span>{transcript.summary_html ? 'إعادة التلخيص' : 'توليد ملخص PDF'}</span>
                         </button>
+
+                        {/* Direct PDF print for Full Proofread */}
+                        {transcript.proofread_html && (
+                            <a
+                                href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'proofread' })}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-[#10B981]/15 border border-emerald-300 dark:border-[#10B981]/40 hover:bg-emerald-100 dark:hover:bg-[#10B981]/25 text-xs text-emerald-800 dark:text-[#4EDEA3] font-bold transition-all"
+                                title="فتح ملف PDF للنص الكامل المدقق جاهز للطباعة"
+                            >
+                                <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                                <span>PDF النص الكامل المدقق</span>
+                            </a>
+                        )}
 
                         {/* Direct PDF print if summary exists */}
                         {transcript.summary_html && (
                             <a
-                                href={route('transcripts.document', { transcript: transcript.id, theme: docTheme })}
+                                href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'summary' })}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-[#F59E0B]/15 border border-amber-300 dark:border-[#F59E0B]/40 hover:bg-amber-100 dark:hover:bg-[#F59E0B]/25 text-xs text-amber-700 dark:text-[#FFB95F] font-bold transition-all"
+                                title="فتح ملف PDF للملخص التنفيذي"
                             >
                                 <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-                                <span>طباعة / حفظ كـ PDF</span>
+                                <span>PDF الملخص</span>
                             </a>
                         )}
 
@@ -264,6 +317,14 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                             <span className="text-slate-500 dark:text-[#BBCAFF]">عدد المقاطع النصية:</span>
                             <span className="font-mono text-slate-900 dark:text-white">{segments.length} مقطع</span>
                         </div>
+                        {transcript.proofread_generated_at && (
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-white/5">
+                                <span className="text-slate-500 dark:text-[#BBCAFF]">التدقيق اللغوي الكامل:</span>
+                                <span className="font-mono text-emerald-600 dark:text-[#4EDEA3] text-[11px]">
+                                    {new Date(transcript.proofread_generated_at).toLocaleDateString('ar-SA')}
+                                </span>
+                            </div>
+                        )}
                         {transcript.summary_generated_at && (
                             <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-white/5">
                                 <span className="text-slate-500 dark:text-[#BBCAFF]">آخر تلخيص بالذكاء الاصطناعي:</span>
@@ -279,36 +340,84 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                 <div className="lg:w-7/12 flex flex-col gap-3">
                     {/* Workspace Tabs */}
                     <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('transcript')}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                                     activeTab === 'transcript'
                                         ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-base">subtitles</span>
-                                <span>النص الكامل المتزامن ({segments.length})</span>
+                                <span>النص المتزامن ({segments.length})</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('proofread')}
+                                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                    activeTab === 'proofread'
+                                        ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
+                                        : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-base">spellcheck</span>
+                                <span>النص الكامل المدقق لغوياً</span>
+                                {transcript.proofread_html && (
+                                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                                )}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('summary')}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                                className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                                     activeTab === 'summary'
                                         ? 'bg-emerald-50 dark:bg-[#1C2028] text-emerald-700 dark:text-[#4EDEA3] border border-emerald-300 dark:border-[#10B981]/40 shadow-xs'
                                         : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                                 }`}
                             >
                                 <span className="material-symbols-outlined text-base">auto_awesome</span>
-                                <span>الملخص والمستند الذكي (AI Document)</span>
+                                <span>الملخص الذكي (AI)</span>
                                 {transcript.summary_html && (
                                     <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
                                 )}
                             </button>
                         </div>
+
+                        {/* Top quick actions per active tab */}
+                        {activeTab === 'proofread' && transcript.proofread_html && (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={copyProofread}
+                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-xs text-slate-700 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-all cursor-pointer"
+                                    title="نسخ النص الكامل المدقق"
+                                >
+                                    <span className="material-symbols-outlined text-sm">
+                                        {copiedProofread ? 'check' : 'content_copy'}
+                                    </span>
+                                </button>
+                                <a
+                                    href={route('transcripts.export.txt', { transcript: transcript.id, type: 'proofread' })}
+                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-xs text-slate-700 dark:text-[#BBCAFF] font-mono font-bold transition-all"
+                                    title="تحميل النص المدقق كملف TXT"
+                                >
+                                    TXT
+                                </a>
+                                <a
+                                    href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'proofread' })}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-md transition-all flex items-center gap-1"
+                                >
+                                    <span className="material-symbols-outlined text-sm">print</span>
+                                    <span>PDF كامل</span>
+                                </a>
+                            </div>
+                        )}
 
                         {activeTab === 'summary' && transcript.summary_html && (
                             <div className="flex items-center gap-2">
@@ -323,13 +432,13 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                     </span>
                                 </button>
                                 <a
-                                    href={route('transcripts.document', { transcript: transcript.id, theme: docTheme })}
+                                    href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'summary' })}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="px-3 py-1.5 rounded-lg bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-md transition-all flex items-center gap-1"
                                 >
                                     <span className="material-symbols-outlined text-sm">print</span>
-                                    <span>تصدير PDF</span>
+                                    <span>PDF ملخص</span>
                                 </a>
                             </div>
                         )}
@@ -394,7 +503,91 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         </div>
                     )}
 
-                    {/* TAB 2: AI SUMMARY & DOCUMENT */}
+                    {/* TAB 2: FULL LINGUISTIC PROOFREAD */}
+                    {activeTab === 'proofread' && (
+                        <div className="space-y-4">
+                            {transcript.proofread_html ? (
+                                <div className="rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 p-6 shadow-xs dark:shadow-xl max-h-[calc(100vh-230px)] overflow-y-auto">
+                                    {/* Document Header Controls */}
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-4 mb-6 border-b border-slate-200 dark:border-white/10">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+                                            <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                النص الكامل بعد التدقيق اللغوي والنحوي والتنسيق
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[11px] text-slate-500 dark:text-[#BBCAFF]">قالب المستند:</span>
+                                            <select
+                                                value={docTheme}
+                                                onChange={(e) => setDocTheme(e.target.value)}
+                                                className="bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white outline-none focus:border-[#10B981]"
+                                            >
+                                                {themes.length > 0 && (
+                                                    <optgroup label="قوالب المؤسسة المخصصة">
+                                                        {themes.map(t => (
+                                                            <option key={t.id} value={t.id}>{t.name} (مخصص)</option>
+                                                        ))}
+                                                    </optgroup>
+                                                )}
+                                                <optgroup label="قوالب النظام القياسية">
+                                                    {systemPresetsList.map(t => (
+                                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                                    ))}
+                                                </optgroup>
+                                            </select>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowProofreadModal(true)}
+                                                className="text-[11px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold mr-1"
+                                            >
+                                                إعادة التدقيق
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Rendered Semantic HTML Proofread Text */}
+                                    <div
+                                        className="prose dark:prose-invert max-w-none text-right leading-relaxed text-sm text-slate-800 dark:text-[#DFE2EE]
+                                                   [&_h1]:text-xl [&_h1]:font-extrabold [&_h1]:text-slate-900 dark:[&_h1]:text-white [&_h1]:mb-4
+                                                   [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-emerald-700 dark:[&_h2]:text-[#4EDEA3] [&_h2]:border-r-4 [&_h2]:border-[#10B981] [&_h2]:pr-3 [&_h2]:mt-6 [&_h2]:mb-3
+                                                   [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-slate-900 dark:[&_h3]:text-white [&_h3]:mt-4 [&_h3]:mb-2
+                                                   [&_p]:mb-3.5 [&_p]:text-justify [&_p]:text-slate-700 dark:[&_p]:text-white/90 [&_p]:leading-7
+                                                   [&_ul]:list-disc [&_ul]:pr-5 [&_ul]:mb-4 [&_li]:mb-1.5
+                                                   [&_blockquote]:border-r-4 [&_blockquote]:border-[#10B981] [&_blockquote]:bg-slate-50 dark:[&_blockquote]:bg-white/5 [&_blockquote]:p-3 [&_blockquote]:rounded-l-lg [&_blockquote]:my-4 [&_blockquote]:italic"
+                                        dangerouslySetInnerHTML={{ __html: transcript.proofread_html }}
+                                    />
+                                </div>
+                            ) : (
+                                /* No Proofread Yet CTA Card */
+                                <div className="p-10 rounded-2xl bg-white dark:bg-gradient-to-tr dark:from-[#141822] dark:to-[#1C2028] border border-slate-200 dark:border-white/10 text-center flex flex-col items-center shadow-xs dark:shadow-xl">
+                                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] flex items-center justify-center mb-4">
+                                        <span className="material-symbols-outlined text-4xl">spellcheck</span>
+                                    </div>
+
+                                    <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+                                        تدقيق النص كاملاً وتجهيزه كملف PDF رسمي
+                                    </h3>
+                                    <p className="text-xs text-slate-500 dark:text-[#BBCAFF] max-w-md mb-6 leading-relaxed">
+                                        يقوم الذكاء الاصطناعي بتدقيق النص كاملاً بدون أي اختصار أو تلخيص، مع تصحيح الأخطاء اللغوية والنحوية والإملائية وضبط علامات الترقيم وتقسيم النص إلى فقرات وعناوين منسقة وجاهزة للتصدير كملف PDF رسمي.
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowProofreadModal(true)}
+                                        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.35)] transition-all cursor-pointer"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">spellcheck</span>
+                                        <span>بدء التدقيق اللغوي للنص كاملاً الآن</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* TAB 3: AI SUMMARY & DOCUMENT */}
                     {activeTab === 'summary' && (
                         <div className="space-y-4">
                             {transcript.summary_html ? (
@@ -610,6 +803,115 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                         <>
                                             <span className="material-symbols-outlined text-base">auto_awesome</span>
                                             <span>توليد المستند الآن</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Full Text Proofreading Configuration Modal */}
+            {showProofreadModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md">
+                    <div className="w-full max-w-xl rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/15 p-6 sm:p-8 shadow-2xl relative text-right">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-6">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-2xl">spellcheck</span>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">التدقيق اللغوي الكامل وتجهيز ملف PDF</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowProofreadModal(false)}
+                                className="text-slate-400 hover:text-slate-600 dark:text-white/40 dark:hover:text-white transition-colors cursor-pointer"
+                            >
+                                <span className="material-symbols-outlined text-xl">close</span>
+                            </button>
+                        </div>
+
+                        {/* Notice about fidelity */}
+                        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-[#10B981]/10 border border-emerald-200 dark:border-[#10B981]/25 mb-5 flex items-start gap-3">
+                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-xl shrink-0 mt-0.5">verified</span>
+                            <p className="text-xs text-emerald-900 dark:text-[#DFE2EE] leading-relaxed">
+                                <strong>تدقيق شامل بدون اختصار:</strong> سيقوم الذكاء الاصطناعي بمراجعة كل كلمة في تفريغ الفيديو، وضبط القواعد النحوية والإملائية وعلامات الترقيم، وتقسيم المحتوى إلى فقرات وعناوين منسقة دون تلخيص أو حذف.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleGenerateProofread} className="space-y-5">
+                            {/* Visual Theme Picker */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
+                                        طابع وتصميم مستند الـ PDF المطبوع:
+                                    </label>
+                                    <Link
+                                        href={route('themes.index')}
+                                        className="text-[10px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold"
+                                        target="_blank"
+                                    >
+                                        + إدارة القوالب والشعار
+                                    </Link>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                    {allAvailableThemes.map((t) => (
+                                        <button
+                                            key={t.id}
+                                            type="button"
+                                            onClick={() => setDocTheme(t.id)}
+                                            className={`p-2.5 rounded-xl border text-center transition-all text-xs font-medium cursor-pointer ${
+                                                docTheme === t.id
+                                                    ? 'bg-emerald-50 dark:bg-[#1C2028] border-emerald-500 dark:border-[#10B981] text-emerald-800 dark:text-[#4EDEA3] shadow-xs font-bold'
+                                                    : 'bg-slate-50 dark:bg-[#0F131C] border-slate-200 dark:border-white/10 text-slate-700 dark:text-[#BBCAFF] hover:border-slate-300 dark:hover:border-white/20'
+                                            }`}
+                                        >
+                                            <div className="w-3 h-3 rounded-full mx-auto mb-1.5" style={{ backgroundColor: t.color }} />
+                                            <div className="truncate">{t.name.split(' ')[0]}</div>
+                                            {t.isCustom && <span className="text-[9px] text-[#10B981] block">مخصص</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Custom Prompt / Directives */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
+                                    توجيهات تدقيق خاصة (اختياري):
+                                </label>
+                                <textarea
+                                    value={proofreadData.prompt}
+                                    onChange={(e) => setProofreadData('prompt', e.target.value)}
+                                    placeholder="مثال: حافظ على الأسماء والمصطلحات التقنية بين أقواس، صحح اللهجة إلى لغة عربية فصحى معاصرة رصينة..."
+                                    rows={3}
+                                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] outline-none"
+                                />
+                            </div>
+
+                            {/* Submit & Cancel */}
+                            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 dark:border-white/10">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowProofreadModal(false)}
+                                    className="px-4 py-2.5 rounded-xl text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                                    disabled={proofreading}
+                                >
+                                    إلغاء
+                                </button>
+
+                                <button
+                                    type="submit"
+                                    disabled={proofreading}
+                                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                    {proofreading ? (
+                                        <>
+                                            <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                                            <span>جاري التدقيق الشامل بواسطة Gemini...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-base">spellcheck</span>
+                                            <span>بدء التدقيق اللغوي الكامل الآن</span>
                                         </>
                                     )}
                                 </button>

@@ -196,8 +196,12 @@ class DocumentThemeService
 
     /**
      * Render the full printable A4 document for a transcript using the selected theme.
+     *
+     * @param Transcript $transcript
+     * @param string|null $themeIdOrName
+     * @param string $docType 'summary' or 'proofread'
      */
-    public function render(Transcript $transcript, ?string $themeIdOrName = null): string
+    public function render(Transcript $transcript, ?string $themeIdOrName = null, string $docType = 'summary'): string
     {
         $tenant = $transcript->tenant;
         $theme = null;
@@ -210,35 +214,54 @@ class DocumentThemeService
             $theme = DocumentTheme::where('tenant_id', $tenant->id)->where('is_default', true)->first();
         }
 
-        $summaryHtml = $transcript->summary_html ?? '<p>لم يتم إنشاء ملخص لهذا الفيديو بعد.</p>';
+        $isProofread = ($docType === 'proofread');
+        if ($isProofread) {
+            $contentHtml = $transcript->proofread_html;
+            if (empty($contentHtml)) {
+                $contentHtml = '<div style="padding: 14px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; margin-bottom: 20px; color: #92400E; font-size: 11pt;"><strong>تنبيه:</strong> لم يتم تشغيل التدقيق اللغوي بالذكاء الاصطناعي لهذا الفيديو بعد. يمكنك تفعيله من استوديو التفريغ. أدناه النص المفرغ الأصلي:</div><p style="white-space: pre-line; line-height: 1.9;">' . htmlspecialchars($transcript->full_text) . '</p>';
+            }
+            $defaultHeaderTag = '✦ النص الكامل بعد التدقيق اللغوي والتحرير الشامل';
+            $date = $transcript->proofread_generated_at ?? $transcript->created_at;
+        } else {
+            $contentHtml = $transcript->summary_html ?? '<p>لم يتم إنشاء ملخص لهذا الفيديو بعد.</p>';
+            $defaultHeaderTag = '✦ ملخص ذكي ومستند تنفيذي بالذكاء الاصطناعي';
+            $date = $transcript->summary_generated_at ?? $transcript->created_at;
+        }
 
         // 1. Custom HTML Theme rendering
         if ($theme && $theme->type === 'custom_html' && !empty($theme->custom_html)) {
-            return $this->renderCustomHtmlTheme($transcript, $theme, $summaryHtml);
+            return $this->renderCustomHtmlTheme($transcript, $theme, $contentHtml, $defaultHeaderTag, $date, $docType, $themeIdOrName);
         }
 
         // 2. Custom Visual Builder Theme rendering
         if ($theme && $theme->type === 'builder') {
-            return $this->renderBuilderTheme($transcript, $theme, $summaryHtml);
+            return $this->renderBuilderTheme($transcript, $theme, $contentHtml, $defaultHeaderTag, $date, $docType, $themeIdOrName);
         }
 
         // 3. Fallback to System Presets ('obsidian', 'navy', 'academic', 'minimal')
         $presetKey = array_key_exists($themeIdOrName ?? '', self::SYSTEM_PRESETS) ? $themeIdOrName : 'obsidian';
-        return $this->renderSystemPreset($transcript, $presetKey, $summaryHtml);
+        return $this->renderSystemPreset($transcript, $presetKey, $contentHtml, $defaultHeaderTag, $date, $docType, $themeIdOrName);
     }
 
     /**
      * Render a custom HTML uploaded theme with variable interpolation.
      */
-    protected function renderCustomHtmlTheme(Transcript $transcript, DocumentTheme $theme, string $summaryHtml): string
-    {
+    protected function renderCustomHtmlTheme(
+        Transcript $transcript,
+        DocumentTheme $theme,
+        string $contentHtml,
+        string $defaultHeaderTag,
+        mixed $date,
+        string $docType,
+        ?string $themeIdOrName
+    ): string {
         $template = $theme->custom_html;
 
         $durationMinutes = floor($transcript->duration_seconds / 60);
         $durationRemainderSeconds = $transcript->duration_seconds % 60;
         $durationFormatted = "{$durationMinutes} دقيقة و {$durationRemainderSeconds} ثانية";
 
-        $dateFormatted = Carbon::parse($transcript->summary_generated_at ?? $transcript->created_at)
+        $dateFormatted = Carbon::parse($date)
             ->locale('ar')
             ->translatedFormat('d F Y - h:i A');
 
@@ -258,8 +281,8 @@ class DocumentThemeService
 
         $replacements = [
             '{{TITLE}}' => htmlspecialchars($transcript->title),
-            '{{CONTENT}}' => $summaryHtml,
-            '{{SUMMARY}}' => $summaryHtml,
+            '{{CONTENT}}' => $contentHtml,
+            '{{SUMMARY}}' => $contentHtml,
             '{{VIDEO_URL}}' => htmlspecialchars($transcript->video_url),
             '{{CHANNEL_NAME}}' => htmlspecialchars($transcript->channel_name ?? 'قناة يوتيوب'),
             '{{DURATION}}' => $durationFormatted,
@@ -270,7 +293,7 @@ class DocumentThemeService
             '{{ACCENT_COLOR}}' => $accent,
             '{{BG_COLOR}}' => $bg,
             '{{TEXT_COLOR}}' => $text,
-            '{{HEADER_TEXT}}' => htmlspecialchars($theme->header_text ?? ''),
+            '{{HEADER_TEXT}}' => htmlspecialchars($theme->header_text ?: $defaultHeaderTag),
             '{{FOOTER_TEXT}}' => htmlspecialchars($theme->footer_text ?? 'تم التوليد والتنسيق بواسطة منصة فرغلي الذكية'),
             '{{ORGANIZATION_NAME}}' => htmlspecialchars($theme->tenant->name),
         ];
@@ -278,14 +301,21 @@ class DocumentThemeService
         $rendered = str_replace(array_keys($replacements), array_values($replacements), $template);
 
         // Inject the interactive toolbar & print stylesheet if not present
-        return $this->injectToolbarAndPrintStyles($rendered, $transcript);
+        return $this->injectToolbarAndPrintStyles($rendered, $transcript, $docType, $themeIdOrName, $theme->name);
     }
 
     /**
      * Render a builder theme with user colors, logo, and typography.
      */
-    protected function renderBuilderTheme(Transcript $transcript, DocumentTheme $theme, string $summaryHtml): string
-    {
+    protected function renderBuilderTheme(
+        Transcript $transcript,
+        DocumentTheme $theme,
+        string $contentHtml,
+        string $defaultHeaderTag,
+        mixed $date,
+        string $docType,
+        ?string $themeIdOrName
+    ): string {
         $colors = $theme->colors ?? [];
         $primary = $colors['primary'] ?? '#0F172A';
         $accent = $colors['accent'] ?? '#6366F1';
@@ -307,12 +337,13 @@ class DocumentThemeService
         $durationRemainderSeconds = $transcript->duration_seconds % 60;
         $durationFormatted = "{$durationMinutes} دقيقة و {$durationRemainderSeconds} ثانية";
 
-        $dateFormatted = Carbon::parse($transcript->summary_generated_at ?? $transcript->created_at)
+        $dateFormatted = Carbon::parse($date)
             ->locale('ar')
             ->translatedFormat('d F Y - h:i A');
 
-        $headerText = $theme->header_text ?: '✦ مستند تفريغ وتلخيص ذكي بالذكاء الاصطناعي';
+        $headerText = $theme->header_text ?: $defaultHeaderTag;
         $footerText = $theme->footer_text ?: ('تم التوثيق عبر منصة فرغلي - ' . htmlspecialchars($theme->tenant->name));
+        $toolbarHtml = $this->buildToolbarHtml($transcript, $docType, $themeIdOrName, $theme->name);
 
         return <<<HTML
 <!DOCTYPE html>
@@ -580,18 +611,7 @@ class DocumentThemeService
     </style>
 </head>
 <body>
-    <div class="no-print-toolbar">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <a href="javascript:history.back()" class="btn btn-secondary">← العودة للاستوديو</a>
-            <span style="font-size: 13px; color: #94A3B8;">معاينة المستند الرسمي بهوية ({$theme->name}) جاهز للطباعة</span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-            <button onclick="window.print()" class="btn btn-primary">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 8v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-2H5z"/></svg>
-                طباعة / حفظ كملف PDF
-            </button>
-        </div>
-    </div>
+    {$toolbarHtml}
 
     <div class="page-container">
         <header class="doc-header">
@@ -601,7 +621,7 @@ class DocumentThemeService
                 <div class="doc-meta">
                     <span class="doc-meta-item">القناة: <strong>{$transcript->channel_name}</strong></span>
                     <span class="doc-meta-item">المدة: <strong>{$durationFormatted}</strong></span>
-                    <span class="doc-meta-item">تاريخ الإنشاء: <strong>{$dateFormatted}</strong></span>
+                    <span class="doc-meta-item">تاريخ التوثيق: <strong>{$dateFormatted}</strong></span>
                 </div>
             </div>
             <div class="doc-logo-area">
@@ -610,7 +630,7 @@ class DocumentThemeService
         </header>
 
         <article class="doc-body">
-            {$summaryHtml}
+            {$contentHtml}
         </article>
 
         <footer class="doc-footer">
@@ -626,17 +646,26 @@ HTML;
     /**
      * Render system preset themes.
      */
-    protected function renderSystemPreset(Transcript $transcript, string $presetKey, string $summaryHtml): string
-    {
+    protected function renderSystemPreset(
+        Transcript $transcript,
+        string $presetKey,
+        string $contentHtml,
+        string $defaultHeaderTag,
+        mixed $date,
+        string $docType,
+        ?string $themeIdOrName
+    ): string {
         $themeColors = self::SYSTEM_PRESETS[$presetKey] ?? self::SYSTEM_PRESETS['obsidian'];
 
         $durationMinutes = floor($transcript->duration_seconds / 60);
         $durationRemainderSeconds = $transcript->duration_seconds % 60;
         $durationFormatted = "{$durationMinutes} دقيقة و {$durationRemainderSeconds} ثانية";
 
-        $dateFormatted = Carbon::parse($transcript->summary_generated_at ?? $transcript->created_at)
+        $dateFormatted = Carbon::parse($date)
             ->locale('ar')
             ->translatedFormat('d F Y - h:i A');
+
+        $toolbarHtml = $this->buildToolbarHtml($transcript, $docType, $themeIdOrName, $themeColors['name'], $themeColors['accent']);
 
         return <<<HTML
 <!DOCTYPE html>
@@ -888,28 +917,17 @@ HTML;
     </style>
 </head>
 <body>
-    <div class="no-print-toolbar">
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <a href="javascript:history.back()" class="btn btn-secondary">← العودة للاستوديو</a>
-            <span style="font-size: 13px; color: #94A3B8;">معاينة المستند الرسمي ({$themeColors['name']})</span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-            <button onclick="window.print()" class="btn btn-primary">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 8v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-2H5z"/></svg>
-                طباعة / حفظ كملف PDF
-            </button>
-        </div>
-    </div>
+    {$toolbarHtml}
 
     <div class="page-container">
         <header class="doc-header">
             <div class="doc-header-info">
-                <div class="doc-tag">✦ مستند تفريغ وتلخيص ذكي بالذكاء الاصطناعي</div>
+                <div class="doc-tag">{$defaultHeaderTag}</div>
                 <h1 class="doc-title">{$transcript->title}</h1>
                 <div class="doc-meta">
                     <span class="doc-meta-item">القناة: <strong>{$transcript->channel_name}</strong></span>
                     <span class="doc-meta-item">المدة: <strong>{$durationFormatted}</strong></span>
-                    <span class="doc-meta-item">تاريخ الإنشاء: <strong>{$dateFormatted}</strong></span>
+                    <span class="doc-meta-item">تاريخ التوثيق: <strong>{$dateFormatted}</strong></span>
                 </div>
             </div>
             <div class="doc-logo">
@@ -919,7 +937,7 @@ HTML;
         </header>
 
         <article class="doc-body">
-            {$summaryHtml}
+            {$contentHtml}
         </article>
     </div>
 </body>
@@ -928,36 +946,74 @@ HTML;
     }
 
     /**
-     * Inject toolbar and print controls into an uploaded custom HTML template if it doesn't already have them.
+     * Build unified toolbar HTML with document type switcher (Proofread vs Summary) and print button.
      */
-    protected function injectToolbarAndPrintStyles(string $html, Transcript $transcript): string
-    {
-        $toolbar = <<<HTML
-<div id="farghly-print-toolbar" style="position: sticky; top: 0; z-index: 999999; background: #0B0F17; color: #FFFFFF; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; direction: rtl;">
+    protected function buildToolbarHtml(
+        Transcript $transcript,
+        string $docType,
+        ?string $themeIdOrName,
+        string $themeName,
+        string $primaryColor = '#10B981'
+    ): string {
+        $themeParam = $themeIdOrName ? ('&theme=' . urlencode($themeIdOrName)) : '';
+        $proofreadUrl = '?type=proofread' . $themeParam;
+        $summaryUrl = '?type=summary' . $themeParam;
+
+        $isProofread = ($docType === 'proofread');
+        $proofreadStyle = $isProofread
+            ? 'background: #10B981; color: #003824; font-weight: 800;'
+            : 'background: transparent; color: #E2E8F0; opacity: 0.85;';
+        $summaryStyle = !$isProofread
+            ? 'background: #10B981; color: #003824; font-weight: 800;'
+            : 'background: transparent; color: #E2E8F0; opacity: 0.85;';
+
+        return <<<HTML
+<div id="farghly-print-toolbar" class="no-print-toolbar" style="position: sticky; top: 0; z-index: 999999; background: #0B0F17; color: #FFFFFF; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: 'Cairo', sans-serif; direction: rtl; gap: 12px; flex-wrap: wrap;">
     <div style="display: flex; align-items: center; gap: 12px;">
-        <a href="javascript:history.back()" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,0.1); color: #E2E8F0; text-decoration: none;">← العودة للاستوديو</a>
-        <span style="font-size: 13px; color: #94A3B8;">قالب HTML مخصص جاهز للطباعة والحفظ كـ PDF</span>
+        <a href="javascript:history.back()" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 700; background: rgba(255,255,255,0.1); color: #E2E8F0; text-decoration: none;">← العودة للاستوديو</a>
+        <span style="font-size: 13px; color: #94A3B8;">معاينة المستند الرسمي ({$themeName})</span>
     </div>
-    <div>
-        <button onclick="window.print()" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; background: #6366F1; color: #FFFFFF; border: none; cursor: pointer;">
+
+    <!-- Document Mode Switcher: Full Proofread vs AI Summary -->
+    <div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.08); padding: 4px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+        <a href="{$proofreadUrl}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; font-size: 12px; text-decoration: none; transition: all 0.2s; {$proofreadStyle}">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/></svg>
+            النص الكامل المدقق
+        </a>
+        <a href="{$summaryUrl}" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; font-size: 12px; text-decoration: none; transition: all 0.2s; {$summaryStyle}">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
+            الملخص الذكي
+        </a>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+        <button onclick="window.print()" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); color: #FFFFFF; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 8v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-2H5z"/></svg>
             طباعة / حفظ كملف PDF
         </button>
     </div>
 </div>
-<style>
-@media print {
-    #farghly-print-toolbar {
-        display: none !important;
-    }
-}
-</style>
 HTML;
+    }
+
+    /**
+     * Inject toolbar and print controls into an uploaded custom HTML template if it doesn't already have them.
+     */
+    protected function injectToolbarAndPrintStyles(
+        string $html,
+        Transcript $transcript,
+        string $docType = 'summary',
+        ?string $themeIdOrName = null,
+        string $themeName = 'قالب مخصص'
+    ): string {
+        $toolbar = $this->buildToolbarHtml($transcript, $docType, $themeIdOrName, $themeName);
+        $toolbarWithStyle = $toolbar . "\n<style>@media print { #farghly-print-toolbar, .no-print-toolbar { display: none !important; } }</style>";
 
         if (stripos($html, '<body') !== false) {
-            return preg_replace('/(<body[^>]*>)/i', '$1' . "\n" . $toolbar, $html, 1);
+            return preg_replace('/(<body[^>]*>)/i', '$1' . "\n" . $toolbarWithStyle, $html, 1);
         }
 
-        return $toolbar . $html;
+        return $toolbarWithStyle . $html;
     }
 
     /**

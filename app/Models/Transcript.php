@@ -28,12 +28,16 @@ class Transcript extends Model
         'summary_style',
         'summary_prompt',
         'summary_generated_at',
+        'proofread_html',
+        'proofread_text',
+        'proofread_generated_at',
     ];
 
     protected $casts = [
         'segments' => 'array',
         'duration_seconds' => 'integer',
         'summary_generated_at' => 'datetime',
+        'proofread_generated_at' => 'datetime',
     ];
 
     /**

@@ -188,8 +188,14 @@ class TranscriptController extends Controller
     {
         $this->authorizeTranscriptAccess($request, $transcript);
 
-        $txtContent = $transcript->full_text;
-        $filename = 'transcript_' . $transcript->youtube_id . '.txt';
+        $type = $request->input('type', 'raw');
+        if ($type === 'proofread' && !empty($transcript->proofread_text)) {
+            $txtContent = $transcript->proofread_text;
+            $filename = 'proofread_' . $transcript->youtube_id . '.txt';
+        } else {
+            $txtContent = $transcript->full_text;
+            $filename = 'transcript_' . $transcript->youtube_id . '.txt';
+        }
 
         return response()->streamDownload(function () use ($txtContent) {
             echo "\xEF\xBB\xBF";
@@ -236,13 +242,55 @@ class TranscriptController extends Controller
     }
 
     /**
-     * View and print full A4 document for PDF export.
+     * Generate full text linguistic proofreading and formatting using Gemini.
+     */
+    public function proofread(Request $request, Transcript $transcript, GeminiSummaryService $gemini)
+    {
+        $this->authorizeTranscriptAccess($request, $transcript);
+
+        $request->validate([
+            'prompt' => ['nullable', 'string', 'max:1500'],
+        ]);
+
+        $customPrompt = $request->input('prompt');
+
+        $result = $gemini->proofread($transcript, $customPrompt);
+
+        if (!$result['success']) {
+            return back()->withErrors([
+                'proofread' => $result['message_ar'] ?? 'فشل في التدقيق اللغوي للنص عبر الذكاء الاصطناعي.',
+            ]);
+        }
+
+        $transcript->update([
+            'proofread_html' => $result['proofread_html'],
+            'proofread_text' => $result['plain_text'],
+            'proofread_generated_at' => now(),
+        ]);
+
+        return back()->with('success', 'تم إنجاز التدقيق اللغوي للنص الكامل بنجاح!');
+    }
+
+    /**
+     * View and print full A4 document for PDF export (Summary or Full Proofread).
      */
     public function document(Request $request, Transcript $transcript, GeminiSummaryService $gemini)
     {
         $this->authorizeTranscriptAccess($request, $transcript);
 
-        if (empty($transcript->summary_html)) {
+        $type = $request->input('type', 'summary'); // 'summary' or 'proofread'
+
+        if ($type === 'proofread' && empty($transcript->proofread_html)) {
+            // Auto-generate proofread if not generated yet
+            $res = $gemini->proofread($transcript);
+            if ($res['success']) {
+                $transcript->update([
+                    'proofread_html' => $res['proofread_html'],
+                    'proofread_text' => $res['plain_text'],
+                    'proofread_generated_at' => now(),
+                ]);
+            }
+        } elseif ($type === 'summary' && empty($transcript->summary_html)) {
             // Auto-generate executive summary if not created yet
             $res = $gemini->generate($transcript, 'executive', null, 'obsidian');
             if ($res['success']) {
@@ -256,7 +304,7 @@ class TranscriptController extends Controller
         }
 
         $theme = $request->input('theme', 'default');
-        $docHtml = $this->themeService->render($transcript, $theme);
+        $docHtml = $this->themeService->render($transcript, $theme, $type);
 
         return response($docHtml)->header('Content-Type', 'text/html; charset=utf-8');
     }

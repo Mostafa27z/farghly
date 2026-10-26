@@ -28,6 +28,7 @@ Route::middleware(['auth', 'tenant.active'])->group(function () {
     Route::get('/transcripts/{transcript}/export/vtt', [TranscriptController::class, 'exportVtt'])->name('transcripts.export.vtt');
     Route::get('/transcripts/{transcript}/export/txt', [TranscriptController::class, 'exportTxt'])->name('transcripts.export.txt');
     Route::post('/transcripts/{transcript}/summarize', [TranscriptController::class, 'summarize'])->name('transcripts.summarize');
+    Route::post('/transcripts/{transcript}/proofread', [TranscriptController::class, 'proofread'])->name('transcripts.proofread');
     Route::get('/transcripts/{transcript}/document', [TranscriptController::class, 'document'])->name('transcripts.document');
 
     // Document Themes & Branding routes
