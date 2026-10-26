@@ -11,6 +11,7 @@ interface LeaderboardItem {
     renewals: number;
     total_transactions: number;
     total_collected: number;
+    total_videos_granted?: number;
     total_minutes_granted: number;
     last_transaction: string | null;
 }
@@ -28,6 +29,7 @@ interface Props {
         new_accounts: number;
         renewals: number;
         total_collected: number;
+        total_videos_granted?: number;
         total_minutes_granted: number;
         transactions: Array<{
             id: number;
@@ -112,7 +114,7 @@ export default function AdminPerformance({ leaderboard, period, selectedAgent }:
                                     <th className="py-3.5 px-4 font-bold text-center">عملاء جدد</th>
                                     <th className="py-3.5 px-4 font-bold text-center">تجديدات</th>
                                     <th className="py-3.5 px-4 font-bold text-center">إجمالي العمليات</th>
-                                    <th className="py-3.5 px-4 font-bold">الدقائق الممنوحة</th>
+                                    <th className="py-3.5 px-4 font-bold">الفيديوهات الممنوحة</th>
                                     <th className="py-3.5 px-4 font-bold">المبالغ المحصلة</th>
                                     <th className="py-3.5 px-4 font-bold">آخر نشاط</th>
                                     <th className="py-3.5 px-4 font-bold text-center">التفاصيل</th>
@@ -161,7 +163,7 @@ export default function AdminPerformance({ leaderboard, period, selectedAgent }:
                                                 </td>
 
                                                 <td className="py-4 px-4 font-mono text-slate-600 dark:text-[#BBCAFF]">
-                                                    {item.total_minutes_granted.toLocaleString()} د
+                                                    {(item.total_videos_granted ?? Math.round(item.total_minutes_granted / 20)).toLocaleString()} فيديو
                                                 </td>
 
                                                 <td className="py-4 px-4 font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
@@ -223,8 +225,8 @@ export default function AdminPerformance({ leaderboard, period, selectedAgent }:
                                     <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">{selectedAgent.renewals}</div>
                                 </div>
                                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/5 text-center">
-                                    <div className="text-[10px] text-slate-500 dark:text-[#BBCAFF] mb-1">الدقائق الممنوحة</div>
-                                    <div className="text-xl font-bold font-mono text-amber-500 dark:text-amber-400">{selectedAgent.total_minutes_granted.toLocaleString()}</div>
+                                    <div className="text-[10px] text-slate-500 dark:text-[#BBCAFF] mb-1">الفيديوهات الممنوحة</div>
+                                    <div className="text-xl font-bold font-mono text-amber-500 dark:text-amber-400">{(selectedAgent.total_videos_granted ?? Math.round(selectedAgent.total_minutes_granted / 20)).toLocaleString()}</div>
                                 </div>
                                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/5 text-center">
                                     <div className="text-[10px] text-slate-500 dark:text-[#BBCAFF] mb-1">المحصل</div>

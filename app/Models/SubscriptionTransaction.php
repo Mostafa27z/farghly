@@ -18,6 +18,7 @@ class SubscriptionTransaction extends Model
         'action_type',
         'plan_name',
         'duration_days',
+        'videos_added',
         'minutes_added',
         'previous_expires_at',
         'new_expires_at',
@@ -28,6 +29,7 @@ class SubscriptionTransaction extends Model
 
     protected $casts = [
         'duration_days' => 'integer',
+        'videos_added' => 'integer',
         'minutes_added' => 'integer',
         'amount_collected' => 'decimal:2',
         'previous_expires_at' => 'datetime',

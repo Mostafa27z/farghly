@@ -7,6 +7,7 @@ interface AuditItem {
     action_type: string;
     plan_name: string;
     duration_days: number;
+    videos_added?: number;
     minutes_added: number;
     previous_expires_at: string | null;
     new_expires_at: string | null;
@@ -108,7 +109,7 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
                                     <th className="py-3.5 px-4 font-bold">العميل / الشركة</th>
                                     <th className="py-3.5 px-4 font-bold">نوع الإجراء</th>
                                     <th className="py-3.5 px-4 font-bold">الباقة والمدة</th>
-                                    <th className="py-3.5 px-4 font-bold">الدقائق الممنوحة</th>
+                                    <th className="py-3.5 px-4 font-bold">الفيديوهات الممنوحة</th>
                                     <th className="py-3.5 px-4 font-bold">صلاحية الاشتراك</th>
                                     <th className="py-3.5 px-4 font-bold">المبلغ المسجل</th>
                                     <th className="py-3.5 px-4 font-bold">ملاحظات</th>
@@ -157,7 +158,9 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
                                             </td>
 
                                             <td className="py-3.5 px-4 font-mono text-amber-600 dark:text-amber-400 whitespace-nowrap">
-                                                {item.minutes_added > 0 ? `+${item.minutes_added.toLocaleString()} د` : '—'}
+                                                {(item.videos_added && item.videos_added > 0)
+                                                    ? `+${item.videos_added} فيديو`
+                                                    : (item.minutes_added > 0 ? `+${Math.round(item.minutes_added / 20)} فيديو` : '—')}
                                             </td>
 
                                             <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600 dark:text-[#BBCAFF] whitespace-nowrap">

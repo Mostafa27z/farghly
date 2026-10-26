@@ -16,9 +16,12 @@ interface TranscriptItem {
 interface TenantInfo {
     name: string;
     plan_name: string;
-    monthly_minutes_limit: number;
-    monthly_minutes_used: number;
-    remaining_minutes: number;
+    monthly_videos_limit?: number;
+    monthly_videos_used?: number;
+    remaining_videos?: number;
+    monthly_minutes_limit?: number;
+    monthly_minutes_used?: number;
+    remaining_minutes?: number;
     expires_at: string;
 }
 
@@ -120,13 +123,13 @@ export default function TranscriptsIndex({ transcripts, tenant, filters }: Props
                     {/* Quota & User Bar */}
                     <div className="flex items-center gap-4 text-xs">
                         <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 shadow-xs">
-                            <span className="text-slate-600 dark:text-[#BBCAFF]">الرصيد المتبقي:</span>
+                            <span className="text-slate-600 dark:text-[#BBCAFF]">رصيد الفيديوهات:</span>
                             <span className="font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold text-sm">
-                                {tenant.remaining_minutes.toLocaleString()} دقيقة
+                                {(tenant.remaining_videos ?? tenant.remaining_minutes ?? 0).toLocaleString()} فيديو
                             </span>
                             <span className="text-slate-300 dark:text-white/20">/</span>
                             <span className="font-mono text-slate-600 dark:text-[#BBCAFF]">
-                                {tenant.monthly_minutes_limit.toLocaleString()} دقيقة
+                                {(tenant.monthly_videos_limit ?? tenant.monthly_minutes_limit ?? 0).toLocaleString()} فيديو
                             </span>
                         </div>
 

@@ -42,9 +42,12 @@ class TranscriptController extends Controller
             'tenant' => [
                 'name' => $tenant->name,
                 'plan_name' => $tenant->plan_name,
+                'monthly_videos_limit' => $tenant->monthly_videos_limit ?: max(10, (int) round(($tenant->monthly_minutes_limit ?? 3000) / 20)),
+                'monthly_videos_used' => $tenant->monthly_videos_used ?? 0,
+                'remaining_videos' => $tenant->remainingVideos(),
                 'monthly_minutes_limit' => $tenant->monthly_minutes_limit,
                 'monthly_minutes_used' => $tenant->monthly_minutes_used,
-                'remaining_minutes' => $tenant->remainingMinutes(),
+                'remaining_minutes' => $tenant->remainingVideos(),
                 'expires_at' => $tenant->expires_at?->format('Y-m-d'),
             ],
             'filters' => [
@@ -81,10 +84,10 @@ class TranscriptController extends Controller
 
         $durationSeconds = $result['duration_seconds'] ?? 0;
 
-        // Verify quota
+        // Verify quota (counted by number of videos)
         if (!$tenant->canTranscribe($durationSeconds)) {
             return back()->withErrors([
-                'url' => 'عذراً، رصيدك من الدقائق الشهرية غير كافٍ لتفريغ هذا الفيديو. المتبقي: ' . $tenant->remainingMinutes() . ' دقيقة.',
+                'url' => 'عذراً، رصيدك من الفيديوهات الشهرية غير كافٍ لتفريغ هذا الفيديو. المتبقي: ' . $tenant->remainingVideos() . ' فيديو.',
             ]);
         }
 
@@ -102,7 +105,7 @@ class TranscriptController extends Controller
             'full_text' => $result['full_text'] ?? '',
         ]);
 
-        // Record minutes used
+        // Record 1 video used
         $tenant->recordUsage($durationSeconds);
 
         return redirect()->route('transcripts.show', $transcript->id)->with('success', 'تم استخراج وتفريغ نص الفيديو بنجاح!');
@@ -139,7 +142,10 @@ class TranscriptController extends Controller
             'tenant' => [
                 'name' => $tenant->name,
                 'plan_name' => $tenant->plan_name,
-                'remaining_minutes' => $tenant->remainingMinutes(),
+                'monthly_videos_limit' => $tenant->monthly_videos_limit ?: max(10, (int) round(($tenant->monthly_minutes_limit ?? 3000) / 20)),
+                'monthly_videos_used' => $tenant->monthly_videos_used ?? 0,
+                'remaining_videos' => $tenant->remainingVideos(),
+                'remaining_minutes' => $tenant->remainingVideos(),
             ],
             'themes' => $themes,
             'systemPresets' => DocumentThemeService::SYSTEM_PRESETS,

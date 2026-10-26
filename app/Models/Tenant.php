@@ -19,6 +19,8 @@ class Tenant extends Model
         'subscription_status',
         'starts_at',
         'expires_at',
+        'monthly_videos_limit',
+        'monthly_videos_used',
         'monthly_minutes_limit',
         'monthly_minutes_used',
         'max_team_members',
@@ -28,6 +30,8 @@ class Tenant extends Model
     protected $casts = [
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
+        'monthly_videos_limit' => 'integer',
+        'monthly_videos_used' => 'integer',
         'monthly_minutes_limit' => 'integer',
         'monthly_minutes_used' => 'integer',
         'max_team_members' => 'integer',
@@ -50,34 +54,46 @@ class Tenant extends Model
     }
 
     /**
-     * Compute remaining transcription minutes for the current billing cycle.
+     * Compute remaining transcription videos for the current billing cycle.
      */
-    public function remainingMinutes(): int
+    public function remainingVideos(): int
     {
-        $left = $this->monthly_minutes_limit - $this->monthly_minutes_used;
-        return max(0, $left);
+        $limit = $this->monthly_videos_limit ?: max(10, (int) round(($this->monthly_minutes_limit ?? 3000) / 20));
+        $used = $this->monthly_videos_used ?? 0;
+        return max(0, $limit - $used);
     }
 
     /**
-     * Verify whether tenant has sufficient minutes to transcribe a video.
+     * Verify whether tenant has sufficient video balance to transcribe.
      */
-    public function canTranscribe(int $videoDurationSeconds): bool
+    public function canTranscribe(?int $videoDurationSeconds = null): bool
     {
         if (!$this->hasActiveSubscription()) {
             return false;
         }
 
-        $requiredMinutes = (int) ceil($videoDurationSeconds / 60);
-        return $this->remainingMinutes() >= $requiredMinutes;
+        return $this->remainingVideos() >= 1;
     }
 
     /**
-     * Record usage after successful extraction.
+     * Record usage after successful extraction (1 video used).
      */
-    public function recordUsage(int $videoDurationSeconds): void
+    public function recordUsage(?int $videoDurationSeconds = null): void
     {
-        $minutes = (int) ceil($videoDurationSeconds / 60);
-        $this->increment('monthly_minutes_used', $minutes);
+        $this->increment('monthly_videos_used', 1);
+
+        if ($videoDurationSeconds) {
+            $minutes = (int) ceil($videoDurationSeconds / 60);
+            $this->increment('monthly_minutes_used', $minutes);
+        }
+    }
+
+    /**
+     * Backward-compatibility alias for remaining count.
+     */
+    public function remainingMinutes(): int
+    {
+        return $this->remainingVideos();
     }
 
     /**

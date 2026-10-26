@@ -21,7 +21,8 @@ class CreateTenantCommand extends Command
                             {--password=password : Admin User password}
                             {--plan=Creator Pro : Plan Name}
                             {--months=12 : Validity period in months}
-                            {--minutes=3000 : Monthly minutes quota}';
+                            {--videos=150 : Monthly videos quota}
+                            {--minutes= : Monthly minutes quota (legacy)}';
 
     /**
      * The console command description.
@@ -41,7 +42,13 @@ class CreateTenantCommand extends Command
         $password = $this->option('password') ?: 'password';
         $plan = $this->option('plan');
         $months = (int) $this->option('months');
-        $minutes = (int) $this->option('minutes');
+        $videos = $this->option('videos') !== null ? (int) $this->option('videos') : null;
+        $legacyMinutes = $this->option('minutes') !== null ? (int) $this->option('minutes') : null;
+
+        if ($videos === null) {
+            $videos = $legacyMinutes ? (int) round($legacyMinutes / 20) : 150;
+        }
+        $minutes = $legacyMinutes ?: ($videos * 20);
 
         $tenant = Tenant::create([
             'name' => $name,
@@ -50,6 +57,8 @@ class CreateTenantCommand extends Command
             'subscription_status' => 'active',
             'starts_at' => now(),
             'expires_at' => now()->addMonths($months),
+            'monthly_videos_limit' => $videos,
+            'monthly_videos_used' => 0,
             'monthly_minutes_limit' => $minutes,
             'monthly_minutes_used' => 0,
             'max_team_members' => 5,
@@ -69,14 +78,14 @@ class CreateTenantCommand extends Command
 
         $this->info("✓ Tenant [{$tenant->name}] created successfully!");
         $this->table(
-            ['Tenant ID', 'Slug', 'Plan', 'Expires At', 'Monthly Minutes', 'Owner Email'],
+            ['Tenant ID', 'Slug', 'Plan', 'Expires At', 'Monthly Videos', 'Owner Email'],
             [
                 [
                     $tenant->id,
                     $tenant->slug,
                     $tenant->plan_name,
                     $tenant->expires_at->format('Y-m-d'),
-                    $tenant->monthly_minutes_limit,
+                    $tenant->monthly_videos_limit,
                     $user->email,
                 ],
             ]

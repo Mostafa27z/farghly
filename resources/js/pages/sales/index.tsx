@@ -10,6 +10,9 @@ interface ClientItem {
     expires_at: string | null;
     expires_at_human: string | null;
     days_left: number | null;
+    monthly_videos_limit?: number;
+    monthly_videos_used?: number;
+    remaining_videos?: number;
     monthly_minutes_limit: number;
     monthly_minutes_used: number;
     remaining_minutes: number;
@@ -47,9 +50,10 @@ interface Props {
         renewals: number;
         total_transactions: number;
         total_collected: number;
+        total_videos_granted?: number;
         total_minutes_granted: number;
     };
-    availablePlans: Record<string, { name: string; minutes: number; default_price: number }>;
+    availablePlans: Record<string, { name: string; videos?: number; minutes?: number; default_price: number }>;
     availablePeriods: Record<string, string>;
 }
 
@@ -61,7 +65,7 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
     const [showOnboardModal, setShowOnboardModal] = useState(false);
     const [selectedTenantForRenew, setSelectedTenantForRenew] = useState<ClientItem | null>(null);
 
-    // New Client Onboard Form
+    // New Client Onboard Form (Videos Quota)
     const onboardForm = useForm({
         client_name: '',
         client_email: '',
@@ -69,17 +73,17 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
         company_name: '',
         plan_name: 'Creator Pro',
         duration_days: 30,
-        monthly_minutes_limit: 3000,
+        monthly_videos_limit: 150,
         amount_collected: 59,
         notes: '',
     });
 
-    // Renew Subscription Form
+    // Renew Subscription Form (Videos Quota)
     const renewForm = useForm({
         duration_days: 30,
         plan_name: '',
-        minutes_to_add: 0,
-        reset_used_minutes: true,
+        videos_to_add: 0,
+        reset_used_videos: true,
         amount_collected: 59,
         notes: '',
     });
@@ -99,7 +103,7 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
             onboardForm.setData((prev) => ({
                 ...prev,
                 plan_name: planKey,
-                monthly_minutes_limit: plan.minutes,
+                monthly_videos_limit: plan.videos || 150,
                 amount_collected: plan.default_price,
             }));
         }
@@ -121,8 +125,8 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
         renewForm.setData({
             duration_days: 30,
             plan_name: client.plan_name,
-            minutes_to_add: 0,
-            reset_used_minutes: true,
+            videos_to_add: 0,
+            reset_used_videos: true,
             amount_collected: plan ? plan.default_price : 0,
             notes: '',
         });
@@ -236,11 +240,11 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
 
                     <div className="p-4 rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/5 shadow-sm">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-slate-500 dark:text-[#BBCAFF]">الدقائق الممنوحة</span>
-                            <span className="material-symbols-outlined text-amber-500 dark:text-amber-400 text-xl">timer</span>
+                            <span className="text-xs text-slate-500 dark:text-[#BBCAFF]">الفيديوهات الممنوحة</span>
+                            <span className="material-symbols-outlined text-amber-500 dark:text-amber-400 text-xl">smart_display</span>
                         </div>
                         <div className="text-2xl font-extrabold text-slate-900 dark:text-white font-mono">
-                            {myMetrics.total_minutes_granted.toLocaleString()} د
+                            {(myMetrics.total_videos_granted ?? Math.round(myMetrics.total_minutes_granted / 20)).toLocaleString()} فيديو
                         </div>
                     </div>
 
@@ -331,7 +335,7 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                     <th className="py-3.5 px-4 font-bold">الباقة</th>
                                     <th className="py-3.5 px-4 font-bold">حالة الاشتراك</th>
                                     <th className="py-3.5 px-4 font-bold">تاريخ الانتهاء</th>
-                                    <th className="py-3.5 px-4 font-bold">استهلاك الدقائق</th>
+                                    <th className="py-3.5 px-4 font-bold">استهلاك الفيديوهات</th>
                                     <th className="py-3.5 px-4 font-bold">المسؤول بالمبيعات</th>
                                     <th className="py-3.5 px-4 font-bold text-center">إجراء التجديد</th>
                                 </tr>
@@ -347,7 +351,9 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                     clients.data.map((client) => {
                                         const isExpired = client.subscription_status === 'expired' || (client.days_left !== null && client.days_left < 0);
                                         const isExpiringSoon = !isExpired && client.days_left !== null && client.days_left <= 7;
-                                        const usagePercent = Math.min(100, Math.round((client.monthly_minutes_used / (client.monthly_minutes_limit || 1)) * 100));
+                                        const videoLimit = client.monthly_videos_limit || Math.round((client.monthly_minutes_limit || 3000) / 20) || 1;
+                                        const videoUsed = client.monthly_videos_used ?? 0;
+                                        const usagePercent = Math.min(100, Math.round((videoUsed / videoLimit) * 100));
 
                                         return (
                                             <tr key={client.id} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors">
@@ -387,8 +393,8 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
 
                                                 <td className="py-4 px-4">
                                                     <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
-                                                        <span className="text-slate-900 dark:text-white font-bold">{client.monthly_minutes_used} د</span>
-                                                        <span className="text-slate-500 dark:text-[#BBCAFF]">/ {client.monthly_minutes_limit} د</span>
+                                                        <span className="text-slate-900 dark:text-white font-bold">{videoUsed} فيديو</span>
+                                                        <span className="text-slate-500 dark:text-[#BBCAFF]">/ {videoLimit} فيديو</span>
                                                     </div>
                                                     <div className="w-28 h-1.5 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
                                                         <div
@@ -513,7 +519,7 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                             }`}
                                         >
                                             <div className="text-xs font-bold">{key}</div>
-                                            <div className="text-[10px] text-slate-500 dark:text-white/50">{plan.minutes.toLocaleString()} دقيقة</div>
+                                            <div className="text-[10px] text-slate-500 dark:text-white/50">{(plan.videos ?? Math.round((plan.minutes || 3000) / 20)).toLocaleString()} فيديو</div>
                                         </button>
                                     ))}
                                 </div>
@@ -535,12 +541,13 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">رصيد الدقائق الشهري:</label>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">رصيد الفيديوهات الشهري:</label>
                                     <input
                                         type="number"
                                         required
-                                        value={onboardForm.data.monthly_minutes_limit}
-                                        onChange={(e) => onboardForm.setData('monthly_minutes_limit', parseInt(e.target.value) || 0)}
+                                        min="1"
+                                        value={onboardForm.data.monthly_videos_limit}
+                                        onChange={(e) => onboardForm.setData('monthly_videos_limit', parseInt(e.target.value) || 0)}
                                         className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white font-mono outline-none focus:border-[#10B981]"
                                     />
                                 </div>
@@ -645,25 +652,25 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                             <label className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    checked={renewForm.data.reset_used_minutes}
-                                    onChange={(e) => renewForm.setData('reset_used_minutes', e.target.checked)}
+                                    checked={renewForm.data.reset_used_videos}
+                                    onChange={(e) => renewForm.setData('reset_used_videos', e.target.checked)}
                                     className="w-4 h-4 rounded text-[#10B981] bg-white dark:bg-[#0F131C] border-slate-300 dark:border-white/20"
                                 />
                                 <div className="text-xs">
-                                    <span className="font-bold text-slate-900 dark:text-white block">تصفير الدقائق المستهلكة للشهر الجديد</span>
-                                    <span className="text-[10px] text-slate-500 dark:text-[#BBCAFF]">إعادة عداد الاستهلاك إلى 0 مع استعادة كامل رصيد الباقة ({selectedTenantForRenew.monthly_minutes_limit} دقيقة)</span>
+                                    <span className="font-bold text-slate-900 dark:text-white block">تصفير الفيديوهات المستهلكة للشهر الجديد</span>
+                                    <span className="text-[10px] text-slate-500 dark:text-[#BBCAFF]">إعادة عداد الاستهلاك إلى 0 مع استعادة كامل رصيد الباقة ({selectedTenantForRenew.monthly_videos_limit || Math.round((selectedTenantForRenew.monthly_minutes_limit || 3000) / 20)} فيديو)</span>
                                 </div>
                             </label>
 
-                            {/* Add extra minutes */}
+                            {/* Add extra videos */}
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1">
-                                    إضافة دقائق بونص إضافية للرصيد (اختياري):
+                                    إضافة فيديوهات بونص إضافية للرصيد (اختياري):
                                 </label>
                                 <input
                                     type="number"
-                                    value={renewForm.data.minutes_to_add}
-                                    onChange={(e) => renewForm.setData('minutes_to_add', parseInt(e.target.value) || 0)}
+                                    value={renewForm.data.videos_to_add}
+                                    onChange={(e) => renewForm.setData('videos_to_add', parseInt(e.target.value) || 0)}
                                     placeholder="0"
                                     className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-xs text-slate-900 dark:text-white font-mono outline-none focus:border-[#10B981]"
                                 />

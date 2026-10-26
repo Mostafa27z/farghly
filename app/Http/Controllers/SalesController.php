@@ -71,9 +71,12 @@ class SalesController extends Controller
                 'expires_at' => $tenant->expires_at?->format('Y-m-d'),
                 'expires_at_human' => $tenant->expires_at?->diffForHumans(),
                 'days_left' => $daysLeft !== null ? (int) $daysLeft : null,
+                'monthly_videos_limit' => $tenant->monthly_videos_limit ?: max(10, (int) round(($tenant->monthly_minutes_limit ?? 3000) / 20)),
+                'monthly_videos_used' => $tenant->monthly_videos_used ?? 0,
+                'remaining_videos' => $tenant->remainingVideos(),
                 'monthly_minutes_limit' => $tenant->monthly_minutes_limit,
                 'monthly_minutes_used' => $tenant->monthly_minutes_used,
-                'remaining_minutes' => $tenant->remainingMinutes(),
+                'remaining_minutes' => $tenant->remainingVideos(),
                 'transcripts_count' => $tenant->transcripts_count,
                 'owner' => $owner ? [
                     'id' => $owner->id,
@@ -101,6 +104,7 @@ class SalesController extends Controller
                 'renewals' => (clone $salesTransactionsQuery)->where('action_type', 'renew')->count(),
                 'total_transactions' => (clone $salesTransactionsQuery)->count(),
                 'total_collected' => (float) (clone $salesTransactionsQuery)->sum('amount_collected'),
+                'total_videos_granted' => (int) (clone $salesTransactionsQuery)->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(videos_added, ROUND(minutes_added / 20))')),
                 'total_minutes_granted' => (int) (clone $salesTransactionsQuery)->sum('minutes_added'),
             ];
         } else {
@@ -113,6 +117,7 @@ class SalesController extends Controller
                 'renewals' => $raw['renewals'],
                 'total_transactions' => $raw['total_transactions'],
                 'total_collected' => (float) $raw['total_collected'],
+                'total_videos_granted' => (int) ($raw['total_videos_granted'] ?? 0),
                 'total_minutes_granted' => (int) $raw['total_minutes_granted'],
             ];
         }
@@ -141,7 +146,8 @@ class SalesController extends Controller
             'company_name' => 'nullable|string|max:120',
             'plan_name' => 'required|string|max:80',
             'duration_days' => 'required|integer|in:30,90,180,365',
-            'monthly_minutes_limit' => 'required|integer|min:100|max:100000',
+            'monthly_videos_limit' => 'nullable|integer|min:1|max:50000',
+            'monthly_minutes_limit' => 'nullable|integer|min:10|max:100000',
             'amount_collected' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',
         ], [
@@ -149,10 +155,16 @@ class SalesController extends Controller
             'client_email.required' => 'البريد الإلكتروني للعميل مطلوب.',
             'client_email.unique' => 'هذا البريد الإلكتروني مسجل بالفعل لدى عميل آخر.',
             'plan_name.required' => 'يرجى اختيار الباقة.',
-            'monthly_minutes_limit.required' => 'يرجى تحديد رصيد الدقائق.',
         ]);
 
-        $result = $this->subscriptionService->createClientAccount($request->user(), $request->all());
+        $data = $request->all();
+        if (empty($data['monthly_videos_limit']) && !empty($data['monthly_minutes_limit'])) {
+            $data['monthly_videos_limit'] = (int) round($data['monthly_minutes_limit'] / 20);
+        } elseif (empty($data['monthly_videos_limit'])) {
+            $data['monthly_videos_limit'] = 150;
+        }
+
+        $result = $this->subscriptionService->createClientAccount($request->user(), $data);
 
         return redirect()->route('sales.index')->with(
             'success',
@@ -168,6 +180,8 @@ class SalesController extends Controller
         $request->validate([
             'duration_days' => 'required|integer|in:30,90,180,365',
             'plan_name' => 'nullable|string|max:80',
+            'videos_to_add' => 'nullable|integer|min:0|max:50000',
+            'reset_used_videos' => 'nullable|boolean',
             'minutes_to_add' => 'nullable|integer|min:0|max:100000',
             'reset_used_minutes' => 'nullable|boolean',
             'amount_collected' => 'nullable|numeric|min:0',
