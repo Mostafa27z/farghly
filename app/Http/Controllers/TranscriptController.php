@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Transcript;
 use App\Services\DocumentThemeService;
 use App\Services\GeminiSummaryService;
+use App\Services\WordExportService;
 use App\Services\YouTubeTranscriptService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -203,6 +204,46 @@ class TranscriptController extends Controller
         }, $filename, [
             'Content-Type' => 'text/plain; charset=utf-8',
         ]);
+    }
+
+    /**
+     * Export as Word document (.DOCX)
+     */
+    public function exportDocx(
+        Request $request,
+        Transcript $transcript,
+        WordExportService $wordService,
+        GeminiSummaryService $gemini
+    ) {
+        $this->authorizeTranscriptAccess($request, $transcript);
+
+        $type = $request->input('type', 'summary');
+        if (!in_array($type, ['summary', 'proofread', 'transcript'], true)) {
+            $type = 'summary';
+        }
+
+        // Auto-generate if summary or proofread is requested but not yet generated
+        if ($type === 'proofread' && empty($transcript->proofread_html)) {
+            $proofreadResult = $gemini->proofread($transcript);
+            if ($proofreadResult['success']) {
+                $transcript->update([
+                    'proofread_html' => $proofreadResult['html'],
+                    'proofread_text' => $proofreadResult['text'],
+                    'proofread_generated_at' => now(),
+                ]);
+            }
+        } elseif ($type === 'summary' && empty($transcript->summary_html)) {
+            $summaryResult = $gemini->summarize($transcript, $transcript->summary_style ?? 'executive');
+            if ($summaryResult['success']) {
+                $transcript->update([
+                    'summary_html' => $summaryResult['html'],
+                    'summary_text' => $summaryResult['text'],
+                    'summary_generated_at' => now(),
+                ]);
+            }
+        }
+
+        return $wordService->download($transcript, $type);
     }
 
     /**

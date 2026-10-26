@@ -280,8 +280,26 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         <a
                             href={route('transcripts.export.vtt', transcript.id)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-indigo-700 dark:text-[#C0C1FF] font-mono font-bold transition-all"
+                            title="تحميل ملف الترجمة VTT"
                         >
                             .VTT
+                        </a>
+
+                        <a
+                            href={route('transcripts.export.txt', transcript.id)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-[#DFE2EE] font-mono font-bold transition-all"
+                            title="تحميل النص كاملاً كملف TXT"
+                        >
+                            .TXT
+                        </a>
+
+                        <a
+                            href={route('transcripts.export.docx', { transcript: transcript.id, type: transcript.proofread_html ? 'proofread' : (transcript.summary_html ? 'summary' : 'transcript') })}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-700 dark:text-blue-300 font-bold transition-all"
+                            title="تحميل مستند وورد Word DOCX"
+                        >
+                            <span className="material-symbols-outlined text-sm">description</span>
+                            <span>Word</span>
                         </a>
                     </div>
                 </div>
@@ -388,6 +406,26 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                         </div>
 
                         {/* Top quick actions per active tab */}
+                        {activeTab === 'transcript' && (
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={route('transcripts.export.txt', transcript.id)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/5 text-xs text-slate-700 dark:text-[#BBCAFF] font-mono font-bold transition-all"
+                                    title="تحميل النص كاملاً كملف TXT"
+                                >
+                                    TXT
+                                </a>
+                                <a
+                                    href={route('transcripts.export.docx', { transcript: transcript.id, type: 'transcript' })}
+                                    className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-700 dark:text-blue-300 font-bold transition-all flex items-center gap-1 hover:bg-blue-100"
+                                    title="تصدير النص الأصلي كملف Word (.docx)"
+                                >
+                                    <span className="material-symbols-outlined text-sm">description</span>
+                                    <span>Word</span>
+                                </a>
+                            </div>
+                        )}
+
                         {activeTab === 'proofread' && transcript.proofread_html && (
                             <div className="flex items-center gap-2">
                                 <button
@@ -406,6 +444,14 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                     title="تحميل النص المدقق كملف TXT"
                                 >
                                     TXT
+                                </a>
+                                <a
+                                    href={route('transcripts.export.docx', { transcript: transcript.id, type: 'proofread' })}
+                                    className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-700 dark:text-blue-300 font-bold transition-all flex items-center gap-1 hover:bg-blue-100"
+                                    title="تحميل النص الكامل المدقق كملف وورد Word (.docx)"
+                                >
+                                    <span className="material-symbols-outlined text-sm">description</span>
+                                    <span>Word</span>
                                 </a>
                                 <a
                                     href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'proofread' })}
@@ -431,6 +477,14 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                                         {copiedSummary ? 'check' : 'content_copy'}
                                     </span>
                                 </button>
+                                <a
+                                    href={route('transcripts.export.docx', { transcript: transcript.id, type: 'summary' })}
+                                    className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/30 text-xs text-blue-700 dark:text-blue-300 font-bold transition-all flex items-center gap-1 hover:bg-blue-100"
+                                    title="تحميل الملخص كملف وورد Word (.docx)"
+                                >
+                                    <span className="material-symbols-outlined text-sm">description</span>
+                                    <span>Word</span>
+                                </a>
                                 <a
                                     href={route('transcripts.document', { transcript: transcript.id, theme: docTheme, type: 'summary' })}
                                     target="_blank"

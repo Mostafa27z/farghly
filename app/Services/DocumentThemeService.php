@@ -986,7 +986,11 @@ HTML;
         </a>
     </div>
 
-    <div style="display: flex; gap: 8px;">
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <a href="/transcripts/{$transcript->id}/export/docx?type={$docType}" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; background: #2B579A; color: #FFFFFF; text-decoration: none; box-shadow: 0 2px 8px rgba(0,0,0,0.25);" title="تحميل المستند كملف مايكروسوفت وورد Word DOCX">
+            <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16"><path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3zM5.5 6.5A.5.5 0 0 0 5 7v5a.5.5 0 0 0 .8.4l1.7-1.275 1.7 1.275a.5.5 0 0 0 .8-.4V7a.5.5 0 0 0-.5-.5h-4z"/></svg>
+            تصدير Word (.docx)
+        </a>
         <button onclick="window.print()" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #10B981, #059669); color: #FFFFFF; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 8v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-2H5z"/></svg>
             طباعة / حفظ كملف PDF

@@ -27,6 +27,7 @@ Route::middleware(['auth', 'tenant.active'])->group(function () {
     Route::get('/transcripts/{transcript}/export/srt', [TranscriptController::class, 'exportSrt'])->name('transcripts.export.srt');
     Route::get('/transcripts/{transcript}/export/vtt', [TranscriptController::class, 'exportVtt'])->name('transcripts.export.vtt');
     Route::get('/transcripts/{transcript}/export/txt', [TranscriptController::class, 'exportTxt'])->name('transcripts.export.txt');
+    Route::get('/transcripts/{transcript}/export/docx', [TranscriptController::class, 'exportDocx'])->name('transcripts.export.docx');
     Route::post('/transcripts/{transcript}/summarize', [TranscriptController::class, 'summarize'])->name('transcripts.summarize');
     Route::post('/transcripts/{transcript}/proofread', [TranscriptController::class, 'proofread'])->name('transcripts.proofread');
     Route::get('/transcripts/{transcript}/document', [TranscriptController::class, 'document'])->name('transcripts.document');
