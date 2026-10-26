@@ -28,9 +28,9 @@ class WordExportService
         $phpWord->setDefaultFontSize(11);
 
         $docProperties = $phpWord->getDocInfo();
-        $docProperties->setCreator('NassTube AI');
+        $docProperties->setCreator('منصة فرغلي');
         $docProperties->setTitle($transcript->title);
-        $docProperties->setDescription('تم استخراج هذا المستند عبر منصة NassTube للذكاء الاصطناعي');
+        $docProperties->setDescription('تم استخراج هذا المستند عبر منصة فرغلي للذكاء الاصطناعي');
 
         // Setup Headings Styles with RTL support
         $phpWord->addTitleStyle(1, [
@@ -94,7 +94,7 @@ class WordExportService
         $footerRow = $footerTable->addRow();
         
         $footerCellRight = $footerRow->addCell(5000);
-        $footerCellRight->addText('منصة NassTube للتفريغ والتلخيص الذكي', [
+        $footerCellRight->addText('منصة فرغلي للتفريغ والتلخيص الذكي', [
             'size' => 9,
             'color' => '6B7280',
             'italic' => true,
@@ -111,7 +111,7 @@ class WordExportService
         $footerTextRun->addField('NUMPAGES');
 
         // 6. Save to temporary file & return download response
-        $tempFile = tempnam(sys_get_temp_dir(), 'nasstube_docx_');
+        $tempFile = tempnam(sys_get_temp_dir(), 'farghly_docx_');
         $writer = IOFactory::createWriter($phpWord, 'Word2007');
         $writer->save($tempFile);
 
