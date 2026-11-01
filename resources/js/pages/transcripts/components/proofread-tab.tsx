@@ -1,6 +1,16 @@
 import { Link } from '@inertiajs/react';
 import { Check, Copy, FileText, Printer, SpellCheck } from 'lucide-react';
 import React from 'react';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectSeparator,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface ThemeOption {
     id: string;
@@ -50,30 +60,45 @@ export default function ProofreadTab({
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-muted-foreground">قالب المستند:</span>
-                            <select
-                                value={docTheme}
-                                onChange={(e) => setDocTheme(e.target.value)}
-                                className="bg-muted border border-border rounded-lg px-2.5 py-1 text-xs text-foreground outline-none focus:border-primary"
-                            >
-                                {themes.length > 0 && (
-                                    <optgroup label="قوالب المؤسسة المخصصة">
-                                        {themes.map((t) => (
-                                            <option key={t.id} value={t.id}>{t.name} (مخصص)</option>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">قالب المستند:</span>
+                            <Select dir="rtl" value={docTheme} onValueChange={setDocTheme}>
+                                <SelectTrigger className="h-8 min-w-[200px] text-xs bg-muted/70 hover:bg-muted border-border rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-primary/30 focus:border-primary">
+                                    <SelectValue placeholder="اختر طابع المستند" />
+                                </SelectTrigger>
+                                <SelectContent dir="rtl" className="bg-popover/95 backdrop-blur-md border-border text-xs rounded-xl shadow-xl min-w-[220px] z-50">
+                                    {themes.length > 0 && (
+                                        <SelectGroup>
+                                            <SelectLabel className="text-[10px] font-bold text-muted-foreground/80 px-2 py-1">قوالب المؤسسة المخصصة</SelectLabel>
+                                            {themes.map((t) => (
+                                                <SelectItem key={t.id} value={t.id} className="text-xs py-2 cursor-pointer rounded-lg hover:bg-accent/60">
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="w-2.5 h-2.5 rounded-full bg-primary/70 shrink-0" />
+                                                        <span>{t.name}</span>
+                                                        <span className="text-[10px] text-muted-foreground">(مخصص)</span>
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                            <SelectSeparator className="my-1 bg-border/50" />
+                                        </SelectGroup>
+                                    )}
+                                    <SelectGroup>
+                                        <SelectLabel className="text-[10px] font-bold text-muted-foreground/80 px-2 py-1">قوالب النظام القياسية</SelectLabel>
+                                        {systemPresetsList.map((t) => (
+                                            <SelectItem key={t.id} value={t.id} className="text-xs py-2 cursor-pointer rounded-lg hover:bg-accent/60">
+                                                <span className="flex items-center gap-2">
+                                                    <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: t.color }} />
+                                                    <span className="font-medium">{t.name}</span>
+                                                </span>
+                                            </SelectItem>
                                         ))}
-                                    </optgroup>
-                                )}
-                                <optgroup label="قوالب النظام القياسية">
-                                    {systemPresetsList.map((t) => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                </optgroup>
-                            </select>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
 
                             <button
                                 type="button"
                                 onClick={onOpenProofreadModal}
-                                className="text-[11px] text-primary hover:underline font-bold mr-1"
+                                className="text-[11px] text-primary hover:underline font-bold mr-1 whitespace-nowrap"
                             >
                                 إعادة التدقيق
                             </button>

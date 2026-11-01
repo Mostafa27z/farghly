@@ -46,9 +46,13 @@ class GeminiSummaryService
         try {
             $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}";
 
-            $response = Http::timeout(90)
+            $response = Http::timeout(120)
                 ->withoutVerifying()
-                ->withHeaders(['Content-Type' => 'application/json'])
+                ->withOptions($this->buildHttpOptions())
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'x-goog-api-key' => $this->apiKey,
+                ])
                 ->post($apiUrl, [
                     'contents' => [
                         [
@@ -210,7 +214,11 @@ class GeminiSummaryService
 
         $response = Http::timeout(180)
             ->withoutVerifying()
-            ->withHeaders(['Content-Type' => 'application/json'])
+            ->withOptions($this->buildHttpOptions())
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'x-goog-api-key' => $this->apiKey,
+            ])
             ->post($apiUrl, [
                 'contents' => [['parts' => [['text' => $prompt]]]],
                 'generationConfig' => $generationConfig,
@@ -766,5 +774,29 @@ PROMPT;
 </body>
 </html>
 HTML;
+    }
+
+    /**
+     * Build HTTP client options (forces IPv4 to prevent ISP IPv6 hang, configures timeout and optional proxy).
+     */
+    protected function buildHttpOptions(): array
+    {
+        $options = [
+            'connect_timeout' => 15,
+        ];
+
+        // Force IPv4 if constant is defined (prevents cURL error 28 timeout with 0 bytes received on dual-stack ISP networks)
+        if (defined('CURLOPT_IPRESOLVE') && defined('CURL_IPRESOLVE_V4')) {
+            $options['curl'] = [
+                CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+            ];
+        }
+
+        $proxy = config('services.gemini.proxy') ?: env('GEMINI_PROXY');
+        if (!empty($proxy)) {
+            $options['proxy'] = $proxy;
+        }
+
+        return $options;
     }
 }
