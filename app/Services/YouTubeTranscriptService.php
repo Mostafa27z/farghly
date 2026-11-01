@@ -160,10 +160,12 @@ class YouTubeTranscriptService
      */
     protected function http(int $timeout = 15): PendingRequest
     {
-        $req = Http::timeout($timeout)->withHeaders([
-            // Pre-accepted EU consent so YouTube doesn't return a consent interstitial
-            'Cookie' => 'CONSENT=YES+1; SOCS=CAI;' . (config('services.youtube.cookies') ? ' ' . config('services.youtube.cookies') : ''),
-        ]);
+        $req = Http::timeout($timeout)
+            ->withoutVerifying()
+            ->withHeaders([
+                // Pre-accepted EU consent so YouTube doesn't return a consent interstitial
+                'Cookie' => 'CONSENT=YES+1; SOCS=CAI;' . (config('services.youtube.cookies') ? ' ' . config('services.youtube.cookies') : ''),
+            ]);
 
         if ($proxy = config('services.youtube.proxy')) {
             $req = $req->withOptions(['proxy' => $proxy]);
@@ -477,6 +479,7 @@ class YouTubeTranscriptService
 
         try {
             $response = Http::timeout(60)
+                ->withoutVerifying()
                 ->withHeaders(['x-api-key' => $key])
                 ->get('https://api.supadata.ai/v1/youtube/transcript', ['url' => $videoUrl, 'text' => 'false']);
 
@@ -812,7 +815,9 @@ class YouTubeTranscriptService
     protected function fetchMetadata(string $videoUrl, string $videoId): array
     {
         try {
-            $response = Http::timeout(6)->get('https://www.youtube.com/oembed', [
+            $response = Http::timeout(6)
+                ->withoutVerifying()
+                ->get('https://www.youtube.com/oembed', [
                 'url' => $videoUrl,
                 'format' => 'json',
             ]);

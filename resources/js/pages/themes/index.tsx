@@ -1,6 +1,22 @@
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import DashboardLayout from '@/layouts/dashboard-layout';
+import { useLanguage } from '@/hooks/use-language';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import {
+    BookOpen,
+    Code2,
+    Download,
+    Eye,
+    ImageIcon,
+    Paintbrush,
+    Palette,
+    Plus,
+    SlidersHorizontal,
+    Sparkles,
+    Trash2,
+    Upload,
+    X,
+} from 'lucide-react';
 import React, { useState } from 'react';
-import ThemeToggle from '@/components/theme-toggle';
 
 interface ThemeItem {
     id: string;
@@ -39,10 +55,15 @@ interface Props {
     sampleTemplate: string;
 }
 
-export default function ThemesIndex({ themes, systemPresets, availableFonts, sampleTemplate }: Props) {
+export default function ThemesIndex({
+    themes,
+    systemPresets,
+    availableFonts,
+    sampleTemplate,
+}: Props) {
+    const { isRtl } = useLanguage();
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [activeTab, setActiveTab] = useState<'builder' | 'custom_html'>('builder');
-    const [copiedTag, setCopiedTag] = useState<string | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     // Visual Builder Form
@@ -50,16 +71,16 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
         type: 'builder',
         name: '',
         primary_color: '#0F172A',
-        accent_color: '#6366F1',
+        accent_color: '#10B981',
         bg_color: '#FFFFFF',
         text_color: '#1E293B',
         card_bg: '#F8FAFC',
         border_color: '#E2E8F0',
         font_family: 'Cairo',
-        header_text: '✦ مستند تفريغ وتلخيص ذكي بالذكاء الاصطناعي',
-        footer_text: 'وثيقة رسمية مؤتمتة - جميع الحقوق محفوظة',
+        header_text: isRtl ? '✦ مستند تفريغ وتلخيص ذكي بالذكاء الاصطناعي' : '✦ AI Automated Study Handout & Summary',
+        footer_text: isRtl ? 'وثيقة رسمية مؤتمتة - جميع الحقوق محفوظة' : 'Official Automated Document - All Rights Reserved',
         logo: null as File | null,
-        is_default: false,
+        is_default: false as boolean,
     });
 
     // Custom HTML Form
@@ -70,7 +91,7 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
         logo: null as File | null,
         header_text: '',
         footer_text: '',
-        is_default: false,
+        is_default: false as boolean,
     });
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>, formType: 'builder' | 'html') => {
@@ -113,176 +134,112 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
     };
 
     const handleSetDefault = (themeId: string) => {
-        router.post(route('themes.default', themeId), {}, { preserveScroll: true });
+        router.post(route('themes.default', themeId));
     };
 
     const handleDelete = (themeId: string, name: string) => {
-        if (confirm(`هل أنت متأكد من رغبتك في حذف قالب «${name}»؟`)) {
-            router.delete(route('themes.destroy', themeId), { preserveScroll: true });
+        const msg = isRtl
+            ? `هل أنت متأكد من حذف القالب "${name}"؟`
+            : `Are you sure you want to delete template "${name}"?`;
+        if (confirm(msg)) {
+            router.delete(route('themes.destroy', themeId));
         }
     };
 
-    const copyTag = (tag: string) => {
-        navigator.clipboard.writeText(tag);
-        setCopiedTag(tag);
-        setTimeout(() => setCopiedTag(null), 2000);
-    };
-
-    const templateTags = [
-        { tag: '{{TITLE}}', label: 'عنوان الفيديو' },
-        { tag: '{{CONTENT}}', label: 'نص الملخص المنشأ بالـ AI (إلزامي)' },
-        { tag: '{{LOGO}}', label: 'شعار المؤسسة كصورة مدمجة' },
-        { tag: '{{CHANNEL_NAME}}', label: 'اسم قناة اليوتيوب' },
-        { tag: '{{DURATION}}', label: 'مدة المقطع' },
-        { tag: '{{DATE}}', label: 'تاريخ التوثيق والإنشاء' },
-        { tag: '{{PRIMARY_COLOR}}', label: 'كود اللون الرئيسي' },
-        { tag: '{{ACCENT_COLOR}}', label: 'كود اللون الثانوي' },
-        { tag: '{{FOOTER_TEXT}}', label: 'نص تذييل الصفحة' },
-    ];
-
     return (
-        <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-[#0A0E16] text-slate-800 dark:text-[#DFE2EE] font-sans antialiased transition-colors">
-            <Head title="إدارة الهوية البصرية وقوالب المستندات | فرغلي" />
-
-            {/* Top Navigation */}
-            <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0F131C]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 py-4 transition-colors">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-6">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-                                <span className="material-symbols-outlined text-[#003824] text-xl font-bold">graphic_eq</span>
-                            </div>
-                            <span className="font-extrabold text-lg text-slate-900 dark:text-white">فرغلي</span>
-                        </Link>
-
-                        <div className="h-5 w-[1px] bg-slate-200 dark:bg-white/20 hidden md:block" />
-
-                        {/* Navigation Links */}
-                        <nav className="flex items-center gap-2">
-                            <Link
-                                href={route('dashboard')}
-                                className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
-                            >
-                                المكتبة والتفريغ
-                            </Link>
-                            <Link
-                                href={route('themes.index')}
-                                className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30"
-                            >
-                                الهوية وقوالب المستندات
-                            </Link>
-                        </nav>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <ThemeToggle />
-
-                        <button
-                            type="button"
-                            onClick={() => setShowCreateModal(true)}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-[0_0_20px_rgba(16,185,129,0.25)] transition-all cursor-pointer"
-                        >
-                            <span className="material-symbols-outlined text-base">add_circle</span>
-                            <span>إنشاء أو رفع قالب جديد</span>
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-6 py-10">
-                {/* Hero Header */}
-                <div className="mb-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-white/10">
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-2">
-                            الهوية البصرية وقوالب المستندات المطبوعة
-                        </h1>
-                        <p className="text-sm text-slate-600 dark:text-[#BBCAFF] max-w-2xl leading-relaxed">
-                            خصص مظهر وثائق الـ PDF المصدرة من ملخصات الذكاء الاصطناعي لتطابق شعار شركتك وألوانها، أو ارفع قالب HTML مخصص متكامل بصيغة A4.
-                        </p>
-                    </div>
-
+        <DashboardLayout
+            title={isRtl ? 'الهوية وقوالب الطباعة' : 'Branding & Templates'}
+            subtitle={
+                isRtl
+                    ? 'تخصيص ألوان وشعار وهوية مذكرات A4 الجاهزة للمطبعة'
+                    : 'Customize branding, colors, logos, and A4 print templates'
+            }
+            actionSlot={
+                <div className="flex items-center gap-2">
                     <a
                         href={route('themes.sample.download')}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#141822] hover:bg-slate-50 dark:hover:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-[#DFE2EE] shadow-sm transition-all"
+                        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card border border-border/80 text-foreground hover:bg-muted text-xs font-semibold transition-colors"
+                        title={isRtl ? 'تحميل كود HTML النموذجي' : 'Download Sample HTML'}
                     >
-                        <span className="material-symbols-outlined text-sm text-emerald-600 dark:text-[#4EDEA3]">download</span>
-                        <span>تحميل قالب HTML تجريبي</span>
+                        <Download className="size-3.5 text-primary" />
+                        <span>{isRtl ? 'تحميل نموذج HTML' : 'Sample HTML'}</span>
                     </a>
-                </div>
 
-                {/* Section 1: Tenant Custom Themes */}
-                <div className="mb-14">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-2xl">palette</span>
-                            <h2 className="text-lg font-bold text-slate-900 dark:text-white">قوالب علامتك التجارية المخصصة</h2>
-                            <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white text-xs font-mono font-bold">
-                                {themes.length}
-                            </span>
+                    <button
+                        type="button"
+                        onClick={() => setShowCreateModal(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-bold transition-all shadow-sm shadow-primary/25 cursor-pointer"
+                    >
+                        <Plus className="size-4" />
+                        <span>{isRtl ? 'إنشاء قالب جديد' : 'New Template'}</span>
+                    </button>
+                </div>
+            }
+        >
+            <Head title={isRtl ? 'الهوية وقوالب الطباعة | فرغلي' : 'Print Themes | Farghly'} />
+
+            <div className="space-y-8">
+                {/* 1. Custom User Themes Section */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="size-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <Palette className="size-4.5" />
+                            </div>
+                            <div>
+                                <h2 className="text-base font-extrabold text-foreground">
+                                    {isRtl ? 'قوالبك المخصصة' : 'Custom Brand Templates'}
+                                </h2>
+                                <p className="text-[11px] text-muted-foreground">
+                                    {isRtl
+                                        ? 'القوالب المصممة خصيصاً لهوية مذكراتك التعليمية'
+                                        : 'Templates personalized with your colors, font, and school logo'}
+                                </p>
+                            </div>
                         </div>
+
+                        <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-mono text-xs font-bold">
+                            {themes.length}
+                        </span>
                     </div>
 
-                    {themes.length === 0 ? (
-                        <div className="p-12 rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 text-center flex flex-col items-center shadow-sm">
-                            <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-600 dark:text-[#4EDEA3] flex items-center justify-center mb-4">
-                                <span className="material-symbols-outlined text-3xl">brush</span>
-                            </div>
-                            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">لم تقم بإنشاء أو رفع أي قالب مخصص بعد</h3>
-                            <p className="text-xs text-slate-600 dark:text-[#BBCAFF] max-w-md mb-6 leading-relaxed">
-                                يمكنك إنشاء هوية مؤسسية مخصصة بألوانك وشعارك أو رفع كود HTML مخصص لتطبيقها على جميع تقارير ملخصات اليوتيوب بنقرة واحدة.
-                            </p>
-                            <button
-                                type="button"
-                                onClick={() => setShowCreateModal(true)}
-                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-md transition-all cursor-pointer"
-                            >
-                                <span className="material-symbols-outlined text-base">add</span>
-                                <span>إنشاء أول قالب خاص بك</span>
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {themes.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                             {themes.map((theme) => {
                                 const colors = theme.colors || {};
                                 return (
                                     <div
                                         key={theme.id}
-                                        className={`rounded-2xl border transition-all p-5 flex flex-col justify-between relative overflow-hidden ${
+                                        className={`group rounded-2xl bg-card border p-4 sm:p-5 flex flex-col justify-between transition-all duration-300 shadow-xs hover:shadow-md ${
                                             theme.is_default
-                                                ? 'bg-white dark:bg-gradient-to-tr dark:from-[#141822] dark:to-[#1A2232] border-emerald-500 shadow-md dark:shadow-[0_0_20px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/20'
-                                                : 'bg-white dark:bg-[#141822] border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-xs'
+                                                ? 'border-primary ring-2 ring-primary/15'
+                                                : 'border-border/80 hover:border-border'
                                         }`}
                                     >
-                                        {/* Default Badge */}
-                                        {theme.is_default && (
-                                            <div className="absolute top-0 left-0 bg-[#10B981] text-[#003824] font-bold text-[10px] px-3 py-1 rounded-br-xl font-mono">
-                                                القالب الافتراضي للمستندات
-                                            </div>
-                                        )}
-
-                                        <div>
-                                            {/* Header Info */}
-                                            <div className="flex items-start justify-between gap-3 mb-4 pt-2">
-                                                <div>
-                                                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white mb-1">
-                                                        {theme.name}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-[#BBCAFF]">
-                                                            {theme.type === 'custom_html' ? 'HTML مخصص' : 'مُنشئ ألوان'}
-                                                        </span>
-                                                        {theme.font_family && (
-                                                            <span className="text-[11px] text-slate-500 dark:text-[#BBCAFF]">
-                                                                الخط: {theme.font_family}
+                                        <div className="space-y-3">
+                                            {/* Header Row */}
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                        <h3 className="font-extrabold text-sm text-foreground truncate">
+                                                            {theme.name}
+                                                        </h3>
+                                                        {theme.is_default && (
+                                                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">
+                                                                {isRtl ? 'الافتراضي' : 'Default'}
                                                             </span>
                                                         )}
                                                     </div>
+                                                    <span className="text-[10px] text-muted-foreground font-mono">
+                                                        {theme.type === 'builder'
+                                                            ? (isRtl ? 'مُنشئ الهوية البصرية' : 'Visual Builder')
+                                                            : (isRtl ? 'قالب HTML مخصص' : 'Custom HTML')}
+                                                    </span>
                                                 </div>
 
-                                                {/* Logo preview */}
+                                                {/* Logo Thumbnail */}
                                                 {theme.logo_url ? (
-                                                    <div className="w-14 h-14 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-1 flex items-center justify-center shrink-0">
+                                                    <div className="size-10 rounded-xl bg-muted/60 border border-border/80 p-1 flex items-center justify-center shrink-0">
                                                         <img
                                                             src={theme.logo_url}
                                                             alt={theme.name}
@@ -290,79 +247,82 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
                                                         />
                                                     </div>
                                                 ) : (
-                                                    <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-400 dark:text-white/30 shrink-0">
-                                                        <span className="material-symbols-outlined text-xl">image</span>
+                                                    <div className="size-10 rounded-xl bg-muted/50 border border-border/80 flex items-center justify-center text-muted-foreground/50 shrink-0">
+                                                        <ImageIcon className="size-4.5" />
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Color Palette preview (if builder) */}
+                                            {/* Color Swatches */}
                                             {colors.primary && (
-                                                <div className="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/5 flex items-center justify-between">
-                                                    <span className="text-[11px] text-slate-500 dark:text-[#BBCAFF]">لوحة الألوان:</span>
+                                                <div className="p-2.5 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-between">
+                                                    <span className="text-[10.5px] text-muted-foreground font-medium">
+                                                        {isRtl ? 'لوحة الألوان:' : 'Palette:'}
+                                                    </span>
                                                     <div className="flex items-center gap-1.5">
                                                         <div
-                                                            className="w-5 h-5 rounded-full border border-slate-300 dark:border-white/20 shadow-xs"
+                                                            className="size-4.5 rounded-full border border-border shadow-2xs"
                                                             style={{ backgroundColor: colors.primary }}
-                                                            title={`الرئيسي: ${colors.primary}`}
+                                                            title={`Primary: ${colors.primary}`}
                                                         />
                                                         <div
-                                                            className="w-5 h-5 rounded-full border border-slate-300 dark:border-white/20 shadow-xs"
+                                                            className="size-4.5 rounded-full border border-border shadow-2xs"
                                                             style={{ backgroundColor: colors.accent }}
-                                                            title={`الثانوي: ${colors.accent}`}
+                                                            title={`Accent: ${colors.accent}`}
                                                         />
                                                         <div
-                                                            className="w-5 h-5 rounded-full border border-slate-300 dark:border-white/20 shadow-xs"
+                                                            className="size-4.5 rounded-full border border-border shadow-2xs"
                                                             style={{ backgroundColor: colors.bg }}
-                                                            title={`الخلفية: ${colors.bg}`}
+                                                            title={`Background: ${colors.bg}`}
                                                         />
                                                         <div
-                                                            className="w-5 h-5 rounded-full border border-slate-300 dark:border-white/20 shadow-xs"
+                                                            className="size-4.5 rounded-full border border-border shadow-2xs"
                                                             style={{ backgroundColor: colors.text }}
-                                                            title={`النصوص: ${colors.text}`}
+                                                            title={`Text: ${colors.text}`}
                                                         />
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Header text / Footer text preview */}
+                                            {/* Texts */}
                                             {theme.header_text && (
-                                                <p className="text-[11px] text-slate-600 dark:text-[#BBCAFF] mb-2 line-clamp-1">
-                                                    الترويسة: <span className="text-slate-900 dark:text-white font-medium">{theme.header_text}</span>
+                                                <p className="text-[11px] text-muted-foreground line-clamp-1">
+                                                    <span className="font-semibold text-foreground/80">{isRtl ? 'الترويسة: ' : 'Header: '}</span>
+                                                    <span>{theme.header_text}</span>
                                                 </p>
                                             )}
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="flex items-center justify-between pt-4 mt-4 border-t border-slate-100 dark:border-white/10">
+                                        <div className="pt-3 mt-4 border-t border-border/50 flex items-center justify-between gap-2">
                                             <a
                                                 href={route('themes.preview', theme.id)}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold"
+                                                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-bold"
                                             >
-                                                <span className="material-symbols-outlined text-sm">visibility</span>
-                                                <span>معاينة حية A4</span>
+                                                <Eye className="size-3.5" />
+                                                <span>{isRtl ? 'معاينة حية A4' : 'Live Preview A4'}</span>
                                             </a>
 
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5">
                                                 {!theme.is_default && (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleSetDefault(theme.id)}
-                                                        className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white text-[11px] font-bold transition-colors cursor-pointer"
+                                                        className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-[11px] font-bold transition-colors cursor-pointer border border-border/50"
                                                     >
-                                                        تعيين كافتراضي
+                                                        {isRtl ? 'تعيين كافتراضي' : 'Set Default'}
                                                     </button>
                                                 )}
 
                                                 <button
                                                     type="button"
                                                     onClick={() => handleDelete(theme.id, theme.name)}
-                                                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
-                                                    title="حذف القالب"
+                                                    className="p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                                                    title={isRtl ? 'حذف القالب' : 'Delete Template'}
                                                 >
-                                                    <span className="material-symbols-outlined text-base">delete</span>
+                                                    <Trash2 className="size-4" />
                                                 </button>
                                             </div>
                                         </div>
@@ -370,36 +330,72 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
                                 );
                             })}
                         </div>
+                    ) : (
+                        <div className="p-8 text-center rounded-3xl bg-card border border-dashed border-border/80 flex flex-col items-center justify-center gap-2.5">
+                            <div className="size-12 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center">
+                                <Palette className="size-6 stroke-[1.8]" />
+                            </div>
+                            <h4 className="font-extrabold text-sm text-foreground">
+                                {isRtl ? 'لم تقم بإنشاء قوالب مخصصة بعد' : 'No custom templates created yet'}
+                            </h4>
+                            <p className="text-xs text-muted-foreground max-w-sm">
+                                {isRtl
+                                    ? 'أنشئ قالبك الأول الآن لإضافة شعارك وألوانك المعتمدة على جميع مذكرات المحاضرات المطبوعة.'
+                                    : 'Create your first template to add your school logo, fonts, and colors to all study handouts.'}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setShowCreateModal(true)}
+                                className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-xs cursor-pointer"
+                            >
+                                <Plus className="size-3.5" />
+                                <span>{isRtl ? 'إنشاء قالب مخصص' : 'Create Custom Template'}</span>
+                            </button>
+                        </div>
                     )}
                 </div>
 
-                {/* Section 2: Built-in System Presets */}
-                <div>
-                    <div className="flex items-center gap-3 mb-6">
-                        <span className="material-symbols-outlined text-slate-500 dark:text-[#BBCAFF] text-2xl">auto_stories</span>
-                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">قوالب النظام الجاهزة</h2>
-                        <span className="text-xs text-slate-500 dark:text-[#BBCAFF]">(متوفرة تلقائياً في شاشة الطباعة)</span>
+                {/* 2. System Presets */}
+                <div className="space-y-4 pt-4 border-t border-border/60">
+                    <div className="flex items-center gap-2.5">
+                        <div className="size-8 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
+                            <BookOpen className="size-4" />
+                        </div>
+                        <div>
+                            <h2 className="text-base font-extrabold text-foreground">
+                                {isRtl ? 'قوالب النظام الجاهزة' : 'Built-in System Presets'}
+                            </h2>
+                            <p className="text-[11px] text-muted-foreground">
+                                {isRtl
+                                    ? 'متوفرة تلقائياً في شاشة تجهيز المذكرات والطباعة'
+                                    : 'Available out-of-the-box in the print studio'}
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                         {Object.entries(systemPresets).map(([key, preset]) => (
                             <div
                                 key={key}
-                                className="p-4 rounded-xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/15 shadow-xs transition-all flex flex-col justify-between"
+                                className="p-4 rounded-2xl bg-card border border-border/70 hover:border-primary/40 transition-all flex flex-col justify-between gap-3 shadow-2xs"
                             >
                                 <div>
-                                    <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center justify-between mb-2">
                                         <div
-                                            className="w-4 h-4 rounded-full border border-slate-300 dark:border-white/20"
+                                            className="size-3.5 rounded-full border border-border"
                                             style={{ backgroundColor: preset.accent }}
                                         />
-                                        <span className="text-[10px] text-slate-400 dark:text-[#BBCAFF] font-mono">PRESET</span>
+                                        <span className="text-[9px] text-muted-foreground font-mono font-bold uppercase tracking-wider">
+                                            PRESET
+                                        </span>
                                     </div>
-                                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-2">{preset.name}</h4>
-                                    <div className="flex items-center gap-1.5 mb-3">
-                                        <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: preset.primary }} />
-                                        <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: preset.accent }} />
-                                        <div className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-white/20" style={{ backgroundColor: preset.card_bg }} />
+                                    <h4 className="text-xs font-bold text-foreground mb-2">
+                                        {preset.name}
+                                    </h4>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="size-3 rounded-full" style={{ backgroundColor: preset.primary }} />
+                                        <div className="size-3 rounded-full" style={{ backgroundColor: preset.accent }} />
+                                        <div className="size-3 rounded-full border border-border" style={{ backgroundColor: preset.card_bg }} />
                                     </div>
                                 </div>
 
@@ -407,255 +403,187 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
                                     href={`${route('themes.preview')}?theme=${key}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-[11px] text-slate-600 dark:text-[#BBCAFF] hover:text-emerald-600 dark:hover:text-[#4EDEA3] transition-colors flex items-center gap-1 pt-2 border-t border-slate-100 dark:border-white/5"
+                                    className="text-[11px] text-muted-foreground hover:text-primary transition-colors flex items-center gap-1 pt-2 border-t border-border/50 font-medium"
                                 >
-                                    <span className="material-symbols-outlined text-sm">open_in_new</span>
-                                    <span>معاينة المستند</span>
+                                    <Eye className="size-3.5" />
+                                    <span>{isRtl ? 'معاينة النموذج' : 'Preview Handout'}</span>
                                 </a>
                             </div>
                         ))}
                     </div>
                 </div>
-            </main>
+            </div>
 
             {/* Create Theme Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md overflow-y-auto">
-                    <div className="w-full max-w-2xl my-8 rounded-3xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/15 p-6 sm:p-8 shadow-2xl relative text-right">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
+                    <div className="w-full max-w-2xl my-8 rounded-3xl bg-card border border-border/80 p-5 sm:p-7 shadow-2xl relative">
                         {/* Modal Header */}
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-6">
+                        <div className="flex items-center justify-between pb-3.5 border-b border-border/60 mb-5">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                                    تخصيص هوية المستند وقوالب الطباعة A4
+                                <h3 className="text-base font-extrabold text-foreground mb-0.5">
+                                    {isRtl ? 'تخصيص هوية المستند وقوالب الطباعة A4' : 'Create Print Template & Branding'}
                                 </h3>
-                                <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">
-                                    اختر بين تصميم الهوية المرئية سريعاً أو رفع ملف HTML مخصص
+                                <p className="text-xs text-muted-foreground">
+                                    {isRtl
+                                        ? 'اختر بين تصميم الهوية المرئية سريعاً أو رفع ملف HTML مخصص'
+                                        : 'Choose between the visual palette builder or upload custom HTML'}
                                 </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setShowCreateModal(false)}
-                                className="text-slate-400 hover:text-slate-600 dark:text-white/40 dark:hover:text-white transition-colors cursor-pointer"
+                                className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                             >
-                                <span className="material-symbols-outlined text-xl">close</span>
+                                <X className="size-4.5" />
                             </button>
                         </div>
 
                         {/* Mode Selector Tabs */}
-                        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-100 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10 mb-6">
+                        <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-muted/60 border border-border/60 mb-5">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('builder')}
-                                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                     activeTab === 'builder'
-                                        ? 'bg-[#10B981] text-[#003824] shadow-sm'
-                                        : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
+                                        ? 'bg-primary text-primary-foreground shadow-xs'
+                                        : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                <span className="material-symbols-outlined text-base">tune</span>
-                                <span>مُنشئ الهوية البصرية (ألوان وشعار)</span>
+                                <SlidersHorizontal className="size-3.5" />
+                                <span>{isRtl ? 'مُنشئ الهوية البصرية (ألوان وشعار)' : 'Visual Builder'}</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('custom_html')}
-                                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                                className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                     activeTab === 'custom_html'
-                                        ? 'bg-[#10B981] text-[#003824] shadow-sm'
-                                        : 'text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white'
+                                        ? 'bg-primary text-primary-foreground shadow-xs'
+                                        : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             >
-                                <span className="material-symbols-outlined text-base">code</span>
-                                <span>رفع قالب HTML مخصص</span>
+                                <Code2 className="size-3.5" />
+                                <span>{isRtl ? 'رفع قالب HTML مخصص' : 'Custom HTML File'}</span>
                             </button>
                         </div>
 
                         {/* TAB 1: VISUAL THEME BUILDER */}
                         {activeTab === 'builder' && (
-                            <form onSubmit={handleBuilderSubmit} className="space-y-5">
-                                {/* Name */}
+                            <form onSubmit={handleBuilderSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                        اسم القالب:
+                                    <label className="block text-xs font-bold text-foreground mb-1">
+                                        {isRtl ? 'اسم القالب:' : 'Template Name:'}
                                     </label>
                                     <input
                                         type="text"
                                         required
                                         value={builderForm.data.name}
                                         onChange={(e) => builderForm.setData('name', e.target.value)}
-                                        placeholder="مثال: الهوية الرسمية للشركة / النمط الأكاديمي المعتمد"
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] outline-none transition-colors"
+                                        placeholder={isRtl ? 'مثال: الهوية الرسمية للأكاديمية / النمط المعتمد' : 'e.g. Official Academy Handout'}
+                                        className="w-full px-3 py-2 rounded-xl bg-background border border-border text-foreground text-xs focus:border-primary focus:ring-2 focus:ring-primary/10 outline-hidden transition-all"
                                     />
                                     {builderForm.errors.name && (
-                                        <p className="text-red-500 text-xs mt-1">{builderForm.errors.name}</p>
+                                        <p className="text-destructive text-xs mt-1">{builderForm.errors.name}</p>
                                     )}
+                                </div>
+
+                                {/* Color Inputs */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                                            {isRtl ? 'اللون الرئيسي:' : 'Primary Color:'}
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                value={builderForm.data.primary_color}
+                                                onChange={(e) => builderForm.setData('primary_color', e.target.value)}
+                                                className="size-8 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
+                                            />
+                                            <span className="text-[11px] font-mono text-muted-foreground">{builderForm.data.primary_color}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                                            {isRtl ? 'اللون التكميلي:' : 'Accent Color:'}
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                value={builderForm.data.accent_color}
+                                                onChange={(e) => builderForm.setData('accent_color', e.target.value)}
+                                                className="size-8 rounded-lg cursor-pointer border border-border bg-transparent p-0.5"
+                                            />
+                                            <span className="text-[11px] font-mono text-muted-foreground">{builderForm.data.accent_color}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[11px] font-bold text-foreground mb-1">
+                                            {isRtl ? 'نوع الخط:' : 'Font Family:'}
+                                        </label>
+                                        <select
+                                            value={builderForm.data.font_family}
+                                            onChange={(e) => builderForm.setData('font_family', e.target.value)}
+                                            className="w-full h-8 px-2 rounded-lg bg-background border border-border text-xs text-foreground focus:border-primary outline-hidden"
+                                        >
+                                            {Object.entries(availableFonts).map(([fontKey, fontLabel]) => (
+                                                <option key={fontKey} value={fontKey}>{fontLabel}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {/* Logo Upload */}
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                        شعار المؤسسة (Logo):
+                                    <label className="block text-xs font-bold text-foreground mb-1">
+                                        {isRtl ? 'شعار المؤسسة / المعلم (Logo):' : 'School/Teacher Logo:'}
                                     </label>
-                                    <div className="flex items-center gap-4">
-                                        <label className="flex-1 border-2 border-dashed border-slate-300 dark:border-white/15 hover:border-[#10B981] dark:hover:border-[#10B981]/50 rounded-xl p-4 text-center cursor-pointer transition-all bg-slate-50 dark:bg-[#0F131C]">
+                                    <div className="flex items-center gap-3">
+                                        <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-border hover:border-primary/50 bg-background cursor-pointer text-xs text-muted-foreground transition-colors">
+                                            <Upload className="size-4 text-primary" />
+                                            <span>{isRtl ? 'اختر صورة الشعار (PNG أو JPG)' : 'Choose Logo Image (PNG / JPG)'}</span>
                                             <input
                                                 type="file"
-                                                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                                                onChange={(e) => handleLogoChange(e, 'builder')}
+                                                accept="image/*"
                                                 className="hidden"
+                                                onChange={(e) => handleLogoChange(e, 'builder')}
                                             />
-                                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-2xl block mb-1">
-                                                upload_file
-                                            </span>
-                                            <span className="text-xs text-slate-600 dark:text-[#BBCAFF] block">
-                                                اضغط لرفع الشعار (PNG, SVG, JPG - حد أقصى 2MB)
-                                            </span>
                                         </label>
-
                                         {logoPreview && (
-                                            <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/15 p-2 flex items-center justify-center shrink-0">
-                                                <img
-                                                    src={logoPreview}
-                                                    alt="Logo Preview"
-                                                    className="max-h-full max-w-full object-contain"
-                                                />
+                                            <div className="size-11 rounded-xl bg-card border border-border p-1 flex items-center justify-center shrink-0">
+                                                <img src={logoPreview} alt="Logo" className="max-h-full max-w-full object-contain" />
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                {/* Colors Grid */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-2">
-                                        لوحة الألوان الأساسية:
-                                    </label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10">
-                                            <label className="text-[11px] text-slate-500 dark:text-[#BBCAFF] block mb-1">اللون الرئيسي</label>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="color"
-                                                    value={builderForm.data.primary_color}
-                                                    onChange={(e) => builderForm.setData('primary_color', e.target.value)}
-                                                    className="w-7 h-7 rounded border-none cursor-pointer bg-transparent"
-                                                />
-                                                <span className="font-mono text-xs text-slate-800 dark:text-white uppercase">{builderForm.data.primary_color}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10">
-                                            <label className="text-[11px] text-slate-500 dark:text-[#BBCAFF] block mb-1">لون التمييز (Accent)</label>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="color"
-                                                    value={builderForm.data.accent_color}
-                                                    onChange={(e) => builderForm.setData('accent_color', e.target.value)}
-                                                    className="w-7 h-7 rounded border-none cursor-pointer bg-transparent"
-                                                />
-                                                <span className="font-mono text-xs text-slate-800 dark:text-white uppercase">{builderForm.data.accent_color}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10">
-                                            <label className="text-[11px] text-slate-500 dark:text-[#BBCAFF] block mb-1">لون النصوص</label>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="color"
-                                                    value={builderForm.data.text_color}
-                                                    onChange={(e) => builderForm.setData('text_color', e.target.value)}
-                                                    className="w-7 h-7 rounded border-none cursor-pointer bg-transparent"
-                                                />
-                                                <span className="font-mono text-xs text-slate-800 dark:text-white uppercase">{builderForm.data.text_color}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10">
-                                            <label className="text-[11px] text-slate-500 dark:text-[#BBCAFF] block mb-1">لون خلفية الورقة</label>
-                                            <div className="flex items-center gap-2">
-                                                <input
-                                                    type="color"
-                                                    value={builderForm.data.bg_color}
-                                                    onChange={(e) => builderForm.setData('bg_color', e.target.value)}
-                                                    className="w-7 h-7 rounded border-none cursor-pointer bg-transparent"
-                                                />
-                                                <span className="font-mono text-xs text-slate-800 dark:text-white uppercase">{builderForm.data.bg_color}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Typography Selection */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                        الخط العربي للمستند:
-                                    </label>
-                                    <select
-                                        value={builderForm.data.font_family}
-                                        onChange={(e) => builderForm.setData('font_family', e.target.value)}
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs outline-none focus:border-[#10B981] transition-colors"
-                                    >
-                                        {Object.entries(availableFonts).map(([key, label]) => (
-                                            <option key={key} value={key}>{label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Header & Footer Custom Texts */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                            نص شارة الترويسة (Header Tag):
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={builderForm.data.header_text}
-                                            onChange={(e) => builderForm.setData('header_text', e.target.value)}
-                                            placeholder="مثال: ✦ تقرير استراتيجي موثق"
-                                            className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs outline-none focus:border-[#10B981] transition-colors"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                            نص التذييل (Footer Text):
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={builderForm.data.footer_text}
-                                            onChange={(e) => builderForm.setData('footer_text', e.target.value)}
-                                            placeholder="مثال: وثيقة سرية خاصة بإدارة الشركة"
-                                            className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs outline-none focus:border-[#10B981] transition-colors"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Set as Default */}
-                                <label className="flex items-center gap-2 cursor-pointer pt-2">
+                                {/* Default Checkbox */}
+                                <label className="flex items-center gap-2 cursor-pointer pt-1">
                                     <input
                                         type="checkbox"
                                         checked={builderForm.data.is_default}
                                         onChange={(e) => builderForm.setData('is_default', e.target.checked)}
-                                        className="w-4 h-4 rounded text-[#10B981] bg-white dark:bg-[#0F131C] border-slate-300 dark:border-white/20 focus:ring-[#10B981]"
+                                        className="size-4 rounded text-primary focus:ring-primary/20 accent-primary"
                                     />
-                                    <span className="text-xs text-slate-800 dark:text-white font-medium">
-                                        تعيين هذا القالب كقالب افتراضي لجميع المستندات المصدرة
+                                    <span className="text-xs font-medium text-foreground">
+                                        {isRtl ? 'تعيين هذا القالب كقالب افتراضي لجميع المذكرات القادمة' : 'Set as default template for upcoming handouts'}
                                     </span>
                                 </label>
 
-                                {/* Submit Buttons */}
-                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
+                                <div className="pt-3 border-t border-border flex justify-end gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setShowCreateModal(false)}
-                                        className="px-4 py-2.5 rounded-xl text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors"
+                                        className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                                     >
-                                        إلغاء
+                                        {isRtl ? 'إلغاء' : 'Cancel'}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={builderForm.processing}
-                                        className="px-6 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer transition-all"
+                                        className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-sm shadow-primary/25 cursor-pointer"
                                     >
-                                        {builderForm.processing ? 'جاري الحفظ...' : 'حفظ القالب الآن'}
+                                        {isRtl ? 'حفظ وتطبيق القالب' : 'Save Template'}
                                     </button>
                                 </div>
                             </form>
@@ -663,132 +591,73 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
 
                         {/* TAB 2: CUSTOM HTML UPLOAD */}
                         {activeTab === 'custom_html' && (
-                            <form onSubmit={handleHtmlSubmit} className="space-y-5">
-                                {/* Instructions & Cheat Sheet */}
-                                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/10 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                                            <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-base">info</span>
-                                            وسوم القالب المتاحة (انقر للنسخ):
-                                        </span>
-                                        <a
-                                            href={route('themes.sample.download')}
-                                            className="text-[11px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold"
-                                        >
-                                            تحميل قالب جاهز كنموذج
-                                        </a>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                        {templateTags.map((item) => (
-                                            <button
-                                                key={item.tag}
-                                                type="button"
-                                                onClick={() => copyTag(item.tag)}
-                                                className={`p-2 rounded-lg text-right border transition-all text-[11px] cursor-pointer ${
-                                                    copiedTag === item.tag
-                                                        ? 'bg-emerald-50 dark:bg-[#10B981]/20 border-emerald-500 dark:border-[#10B981] text-emerald-700 dark:text-[#4EDEA3]'
-                                                        : 'bg-white dark:bg-[#141822] border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20 text-slate-800 dark:text-[#DFE2EE]'
-                                                }`}
-                                            >
-                                                <div className="font-mono font-bold text-xs">{item.tag}</div>
-                                                <div className="text-[10px] text-slate-500 dark:text-[#BBCAFF] truncate">{item.label}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Name */}
+                            <form onSubmit={handleHtmlSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                        اسم القالب:
+                                    <label className="block text-xs font-bold text-foreground mb-1">
+                                        {isRtl ? 'اسم القالب:' : 'Template Name:'}
                                     </label>
                                     <input
                                         type="text"
                                         required
                                         value={htmlForm.data.name}
                                         onChange={(e) => htmlForm.setData('name', e.target.value)}
-                                        placeholder="مثال: قالب تقارير الإدارة العليا المخصص"
-                                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] outline-none transition-colors"
+                                        placeholder={isRtl ? 'مثال: قالب A4 المطور للمطبعة' : 'e.g. Custom Press Handout HTML'}
+                                        className="w-full px-3 py-2 rounded-xl bg-background border border-border text-foreground text-xs focus:border-primary focus:ring-2 focus:ring-primary/10 outline-hidden transition-all"
                                     />
-                                    {htmlForm.errors.name && (
-                                        <p className="text-red-500 text-xs mt-1">{htmlForm.errors.name}</p>
-                                    )}
                                 </div>
 
-                                {/* HTML File Upload */}
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                        ملف القالب بصيغة (.html):
+                                    <label className="block text-xs font-bold text-foreground mb-1">
+                                        {isRtl ? 'ملف قالب الـ HTML (.html):' : 'HTML Template File (.html):'}
                                     </label>
-                                    <label className="block border-2 border-dashed border-slate-300 dark:border-white/15 hover:border-[#10B981] dark:hover:border-[#10B981]/50 rounded-xl p-5 text-center cursor-pointer transition-all bg-slate-50 dark:bg-[#0F131C]">
+                                    <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 bg-background cursor-pointer text-center transition-colors">
+                                        <Code2 className="size-8 text-primary mb-2" />
+                                        <span className="text-xs font-bold text-foreground">
+                                            {htmlForm.data.html_file ? (htmlForm.data.html_file as File).name : (isRtl ? 'اضغط لاختيار ملف HTML' : 'Click to select HTML file')}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground mt-1">
+                                            {isRtl ? 'يجب أن يحتوي الملف على وسوم الاستبدال مثل {{TITLE}} و {{SUMMARY}}' : 'Must include template tags like {{TITLE}} and {{SUMMARY}}'}
+                                        </span>
                                         <input
                                             type="file"
                                             required
                                             accept=".html,.htm"
+                                            className="hidden"
                                             onChange={(e) => {
                                                 if (e.target.files && e.target.files[0]) {
                                                     htmlForm.setData('html_file', e.target.files[0]);
                                                 }
                                             }}
-                                            className="hidden"
                                         />
-                                        <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-3xl block mb-1">
-                                            code
-                                        </span>
-                                        <span className="text-xs text-slate-900 dark:text-white font-bold block mb-1">
-                                            {htmlForm.data.html_file ? (htmlForm.data.html_file as File).name : 'اضغط لاختيار ملف HTML من جهازك'}
-                                        </span>
-                                        <span className="text-[10px] text-slate-500 dark:text-[#BBCAFF]">
-                                            يجب أن يحتوي الملف على وسم <code className="text-emerald-600 dark:text-[#4EDEA3] font-mono">{"{{CONTENT}}"}</code>
-                                        </span>
                                     </label>
-                                    {htmlForm.errors.html_file && (
-                                        <p className="text-red-500 text-xs mt-1">{htmlForm.errors.html_file}</p>
-                                    )}
                                 </div>
 
-                                {/* Optional Logo Upload */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE] mb-1.5">
-                                        شعار إضافي مدمج (اختياري للاستخدام مع وسم {"{{LOGO}}"}):
-                                    </label>
-                                    <input
-                                        type="file"
-                                        accept="image/png,image/jpeg,image/svg+xml"
-                                        onChange={(e) => handleLogoChange(e, 'html')}
-                                        className="text-xs text-slate-600 dark:text-[#BBCAFF] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-200 dark:file:bg-white/10 file:text-slate-800 dark:file:text-white hover:file:bg-slate-300 dark:hover:file:bg-white/20 cursor-pointer"
-                                    />
-                                </div>
-
-                                {/* Set as Default */}
-                                <label className="flex items-center gap-2 cursor-pointer pt-2">
+                                <label className="flex items-center gap-2 cursor-pointer pt-1">
                                     <input
                                         type="checkbox"
                                         checked={htmlForm.data.is_default}
                                         onChange={(e) => htmlForm.setData('is_default', e.target.checked)}
-                                        className="w-4 h-4 rounded text-[#10B981] bg-white dark:bg-[#0F131C] border-slate-300 dark:border-white/20 focus:ring-[#10B981]"
+                                        className="size-4 rounded text-primary focus:ring-primary/20 accent-primary"
                                     />
-                                    <span className="text-xs text-slate-800 dark:text-white font-medium">
-                                        تعيين هذا القالب كافتراضي لجميع مستندات الـ PDF
+                                    <span className="text-xs font-medium text-foreground">
+                                        {isRtl ? 'تعيين كافتراضي' : 'Set as default'}
                                     </span>
                                 </label>
 
-                                {/* Submit Buttons */}
-                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-white/10">
+                                <div className="pt-3 border-t border-border flex justify-end gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setShowCreateModal(false)}
-                                        className="px-4 py-2.5 rounded-xl text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors"
+                                        className="px-4 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
                                     >
-                                        إلغاء
+                                        {isRtl ? 'إلغاء' : 'Cancel'}
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={htmlForm.processing}
-                                        className="px-6 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer transition-all"
+                                        className="px-5 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-sm shadow-primary/25 cursor-pointer"
                                     >
-                                        {htmlForm.processing ? 'جاري الرفع والتحقق...' : 'رفع وحفظ القالب'}
+                                        {isRtl ? 'رفع وحفظ القالب' : 'Upload & Save'}
                                     </button>
                                 </div>
                             </form>
@@ -796,7 +665,6 @@ export default function ThemesIndex({ themes, systemPresets, availableFonts, sam
                     </div>
                 </div>
             )}
-        </div>
+        </DashboardLayout>
     );
 }
-

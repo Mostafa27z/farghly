@@ -1,6 +1,8 @@
-import StaffHeader from '@/components/staff-header';
+import DashboardLayout from '@/layouts/dashboard-layout';
+import { useLanguage } from '@/hooks/use-language';
 import { Head, Link } from '@inertiajs/react';
 import React from 'react';
+import { BadgeCheck, BarChart3, BellRing, CalendarX, DollarSign, History, Trophy } from 'lucide-react';
 
 interface Props {
     metrics: {
@@ -39,228 +41,235 @@ interface Props {
 }
 
 export default function AdminDashboard({ metrics, recentTransactions, topPerformers }: Props) {
+    const { isRtl } = useLanguage();
+
     return (
-        <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-[#0A0E16] text-slate-800 dark:text-[#DFE2EE] font-sans antialiased transition-colors">
-            <Head title="لوحة الإدارة العليا | فرغلي" />
-
-            <StaffHeader />
-
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* Title & Quick Actions */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
-                    <div>
-                        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1">
-                            لوحة الإدارة العامة ومؤشرات النظام
-                        </h1>
-                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">
-                            نظرة عامة على أداء الاشتراكات، مؤشرات المبيعات، ومراقبة حركة المشتركين في المنصة.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Link
-                            href={route('admin.performance')}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-100 dark:bg-[#141822] dark:hover:bg-[#1C2028] border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-800 dark:text-white shadow-xs transition-all"
-                        >
-                            <span className="material-symbols-outlined text-sm text-emerald-600 dark:text-[#4EDEA3]">leaderboard</span>
-                            <span>أداء المبيعات المقارن</span>
-                        </Link>
-
-                        <Link
-                            href={route('admin.sales-team.index')}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] text-xs font-bold shadow-md transition-all"
-                        >
-                            <span className="material-symbols-outlined text-sm">badge</span>
-                            <span>إدارة فريق المبيعات</span>
-                        </Link>
-                    </div>
+        <DashboardLayout
+            title={isRtl ? 'لوحة الإدارة العامة' : 'Super Admin Overview'}
+            subtitle={isRtl ? 'مؤشرات النظام، الاشتراكات ومتابعة فريق المبيعات' : 'System metrics, subscriptions and sales team monitoring'}
+            actionSlot={
+                <div className="flex items-center gap-2">
+                    <Link
+                        href={route('admin.performance')}
+                        className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card hover:bg-muted border border-border text-xs font-semibold text-foreground transition-all"
+                    >
+                        <BarChart3 className="size-3.5 text-primary" />
+                        <span>{isRtl ? 'أداء المبيعات' : 'Performance'}</span>
+                    </Link>
+                    <Link
+                        href={route('admin.sales-team.index')}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold transition-all shadow-xs"
+                    >
+                        <BadgeCheck className="size-3.5" />
+                        <span>{isRtl ? 'فريق المبيعات' : 'Sales Team'}</span>
+                    </Link>
                 </div>
+            }
+        >
+            <Head title={isRtl ? 'لوحة الإدارة العليا | فرغلي' : 'Super Admin Dashboard | Farghly'} />
 
-                {/* 1. Main KPI Stat Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="space-y-8">
+                {/* ── 1. KPI Stat Grid ── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
                     {/* Active Clients */}
-                    <div className="p-5 rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 relative overflow-hidden shadow-xs">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-slate-500 dark:text-[#BBCAFF]">المشتركون النشطون</span>
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse" />
+                    <div className="p-5 rounded-xl bg-card border border-border relative overflow-hidden">
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs text-muted-foreground">المشتركون النشطون</span>
+                            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                         </div>
-                        <div className="text-3xl font-extrabold text-slate-900 dark:text-white font-mono">
+                        <div className="text-3xl font-extrabold text-foreground font-mono">
                             {metrics.active_tenants}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-[#BBCAFF] mt-2">
-                            من إجمالي {metrics.total_tenants} مساحة عمل مسجلة
+                        <div className="text-[11px] text-muted-foreground mt-2">
+                            من إجمالي {metrics.total_tenants} مساحة عمل
                         </div>
                     </div>
 
                     {/* Expiring Soon */}
-                    <div className="p-5 rounded-2xl bg-white dark:bg-[#141822] border border-amber-200 dark:border-amber-500/20 relative overflow-hidden shadow-xs">
-                        <div className="flex items-center justify-between mb-2">
+                    <div className="p-5 rounded-xl bg-card border border-amber-200 dark:border-amber-500/20 relative overflow-hidden">
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+                        <div className="flex items-center justify-between mb-3">
                             <span className="text-xs text-amber-600 dark:text-amber-400">ينتهي خلال 7 أيام</span>
-                            <span className="material-symbols-outlined text-amber-500 dark:text-amber-400 text-xl">notification_important</span>
+                            <BellRing size={18} />
                         </div>
                         <div className="text-3xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">
                             {metrics.expiring_soon}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-[#BBCAFF] mt-2">
-                            فرص تجديد ساخنة لمتابعة فريق المبيعات
+                        <div className="text-[11px] text-muted-foreground mt-2">
+                            فرص تجديد ساخنة
                         </div>
                     </div>
 
-                    {/* Expired Clients */}
-                    <div className="p-5 rounded-2xl bg-white dark:bg-[#141822] border border-red-200 dark:border-red-500/20 relative overflow-hidden shadow-xs">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-red-600 dark:text-red-400">اشتراكات منتهية</span>
-                            <span className="material-symbols-outlined text-red-500 dark:text-red-400 text-xl">event_busy</span>
+                    {/* Expired */}
+                    <div className="p-5 rounded-xl bg-card border border-red-200 dark:border-red-500/20 relative overflow-hidden">
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-400/40 to-transparent" />
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs text-destructive">اشتراكات منتهية</span>
+                            <CalendarX size={18} />
                         </div>
-                        <div className="text-3xl font-extrabold text-red-600 dark:text-red-400 font-mono">
+                        <div className="text-3xl font-extrabold text-destructive font-mono">
                             {metrics.expired_tenants}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-[#BBCAFF] mt-2">
-                            بحاجة لإعادة التواصل والتنشيط
+                        <div className="text-[11px] text-muted-foreground mt-2">
+                            بحاجة لإعادة التواصل
                         </div>
                     </div>
 
-                    {/* Sales Revenue */}
-                    <div className="p-5 rounded-2xl bg-white dark:bg-[#141822] border border-emerald-200 dark:border-emerald-500/20 relative overflow-hidden shadow-xs">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-emerald-600 dark:text-emerald-400">المبيعات المحصلة (الشهر)</span>
-                            <span className="material-symbols-outlined text-emerald-500 dark:text-emerald-400 text-xl">attach_money</span>
+                    {/* Revenue */}
+                    <div className="p-5 rounded-xl bg-card border border-primary/20 relative overflow-hidden">
+                        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs text-primary">المبيعات المحصلة (الشهر)</span>
+                            <DollarSign size={18} />
                         </div>
-                        <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+                        <div className="text-3xl font-extrabold text-primary font-mono">
                             ${metrics.month_revenue.toLocaleString()}
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-[#BBCAFF] mt-2">
-                            {metrics.month_renewals} تجديد + {metrics.month_new_clients} عميل جديد
+                        <div className="text-[11px] text-muted-foreground mt-2">
+                            {metrics.month_renewals} تجديد · {metrics.month_new_clients} عميل جديد
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Top Sales Performers this month */}
-                    <div className="lg:col-span-1 rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 p-6 flex flex-col justify-between shadow-xs">
-                        <div>
-                            <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-amber-500 dark:text-amber-400 text-xl">emoji_events</span>
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">متصدرو مبيعات هذا الشهر</h3>
-                                </div>
-                                <Link href={route('admin.performance')} className="text-[11px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold">
-                                    كامل الترتيب
-                                </Link>
+                {/* ── 2. Main Grid ── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    {/* Top Sales Performers */}
+                    <div className="lg:col-span-1 rounded-xl bg-card border border-border p-6 flex flex-col">
+                        <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
+                            <div className="flex items-center gap-2">
+                                <Trophy size={20} />
+                                <h3 className="text-sm font-bold text-foreground">متصدرو مبيعات هذا الشهر</h3>
                             </div>
+                            <Link href={route('admin.performance')} className="text-[11px] text-primary hover:underline font-bold">
+                                كامل الترتيب
+                            </Link>
+                        </div>
 
-                            <div className="space-y-3">
-                                {topPerformers.length === 0 ? (
-                                    <div className="text-center py-8 text-xs text-slate-500 dark:text-[#BBCAFF]">
-                                        لم يتم تسجيل عمليات بعد في هذا الشهر.
-                                    </div>
-                                ) : (
-                                    topPerformers.map((performer, idx) => {
-                                        const medals = ['🥇', '🥈', '🥉'];
-                                        return (
-                                            <div
-                                                key={performer.id}
-                                                className="p-3 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-200 dark:border-white/5 flex items-center justify-between"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-lg">{medals[idx] || `#${idx + 1}`}</span>
-                                                    <div>
-                                                        <div className="text-xs font-bold text-slate-900 dark:text-white">{performer.name}</div>
-                                                        <div className="text-[10px] text-slate-500 dark:text-[#BBCAFF]">
-                                                            {performer.new_accounts} جديد • {performer.renewals} تجديد
-                                                        </div>
-                                                    </div>
+                        <div className="space-y-2.5 flex-1">
+                            {topPerformers.length === 0 ? (
+                                <div className="text-center py-10 text-xs text-muted-foreground">
+                                    لم يتم تسجيل عمليات بعد في هذا الشهر.
+                                </div>
+                            ) : (
+                                topPerformers.map((performer, idx) => {
+                                    const rankStyles = [
+                                        'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+                                        'bg-slate-400/15 text-slate-600 dark:text-slate-300 border-slate-400/30',
+                                        'bg-orange-600/15 text-orange-600 dark:text-orange-400 border-orange-600/30',
+                                    ];
+                                    return (
+                                        <div
+                                            key={performer.id}
+                                            className="p-3 rounded-lg bg-muted border border-border flex items-center justify-between"
+                                        >
+                                            <div className="flex items-center gap-2.5">
+                                                <div
+                                                    className={`size-7 rounded-lg border flex items-center justify-center font-bold text-xs shrink-0 ${
+                                                        rankStyles[idx] || 'bg-background text-muted-foreground border-border'
+                                                    }`}
+                                                >
+                                                    {idx < 3 ? <Trophy size={14} /> : `#${idx + 1}`}
                                                 </div>
-
-                                                <div className="text-left font-mono">
-                                                    <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                                        ${performer.total_collected.toLocaleString()}
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-500 dark:text-[#BBCAFF]">
-                                                        {performer.total_transactions} عملية
+                                                <div>
+                                                    <div className="text-xs font-bold text-foreground">{performer.name}</div>
+                                                    <div className="text-[10px] text-muted-foreground">
+                                                        {performer.new_accounts} جديد · {performer.renewals} تجديد
                                                     </div>
                                                 </div>
                                             </div>
-                                        );
-                                    })
-                                )}
-                            </div>
+
+                                            <div className="text-left font-mono">
+                                                <div className="text-xs font-bold text-primary">
+                                                    ${performer.total_collected.toLocaleString()}
+                                                </div>
+                                                <div className="text-[10px] text-muted-foreground">
+                                                    {performer.total_transactions} عملية
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
 
-                        <div className="pt-4 mt-6 border-t border-slate-200 dark:border-white/10 text-center">
-                            <span className="text-xs text-slate-500 dark:text-[#BBCAFF]">
-                                عدد مناديب المبيعات النشطين: <strong className="text-slate-900 dark:text-white">{metrics.sales_agents_count}</strong> موظف
+                        <div className="pt-4 mt-auto border-t border-border text-center">
+                            <span className="text-xs text-muted-foreground">
+                                عدد مناديب المبيعات النشطين:
+                                <strong className="text-foreground mr-1">{metrics.sales_agents_count}</strong> موظف
                             </span>
                         </div>
                     </div>
 
-                    {/* Recent Transactions Across Platform */}
-                    <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 p-6 shadow-xs">
-                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10 mb-4">
+                    {/* Recent Transactions */}
+                    <div className="lg:col-span-2 rounded-xl bg-card border border-border p-6">
+                        <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
                             <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-emerald-600 dark:text-[#4EDEA3] text-xl">history</span>
-                                <h3 className="text-sm font-bold text-slate-900 dark:text-white">أحدث عمليات التجديد والاشتراكات</h3>
+                                <History size={20} />
+                                <h3 className="text-sm font-bold text-foreground">أحدث عمليات التجديد والاشتراكات</h3>
                             </div>
-                            <Link href={route('admin.audit-logs')} className="text-[11px] text-emerald-600 dark:text-[#4EDEA3] hover:underline font-bold">
+                            <Link href={route('admin.audit-logs')} className="text-[11px] text-primary hover:underline font-bold">
                                 عرض السجل العام
                             </Link>
                         </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full text-right text-xs">
-                                <thead className="text-slate-600 dark:text-[#BBCAFF] border-b border-slate-200 dark:border-white/5 font-bold">
+                                <thead className="text-muted-foreground border-b border-border font-semibold">
                                     <tr>
-                                        <th className="pb-3">النوع</th>
-                                        <th className="pb-3">العميل / الشركة</th>
-                                        <th className="pb-3">الباقة</th>
-                                        <th className="pb-3">المندوب</th>
-                                        <th className="pb-3">المبلغ</th>
-                                        <th className="pb-3">الوقت</th>
+                                        <th className="pb-3 font-semibold">النوع</th>
+                                        <th className="pb-3 font-semibold">العميل / الشركة</th>
+                                        <th className="pb-3 font-semibold">الباقة</th>
+                                        <th className="pb-3 font-semibold">المندوب</th>
+                                        <th className="pb-3 font-semibold">المبلغ</th>
+                                        <th className="pb-3 font-semibold">الوقت</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                <tbody className="divide-y divide-border">
                                     {recentTransactions.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-8 text-center text-slate-500 dark:text-[#BBCAFF]">
+                                            <td colSpan={6} className="py-10 text-center text-muted-foreground">
                                                 لا توجد عمليات مسجلة حديثاً.
                                             </td>
                                         </tr>
                                     ) : (
                                         recentTransactions.map((tx) => (
-                                            <tr key={tx.id} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02]">
-                                                <td className="py-3">
+                                            <tr key={tx.id} className="hover:bg-muted/40 transition-colors">
+                                                <td className="py-3.5">
                                                     {tx.action_type === 'new_account' ? (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-emerald-500/20">
+                                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
                                                             عميل جديد
                                                         </span>
                                                     ) : (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20">
+                                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-secondary text-secondary-foreground border border-border">
                                                             تجديد ({tx.duration_days} يوم)
                                                         </span>
                                                     )}
                                                 </td>
-                                                <td className="py-3 font-bold text-slate-900 dark:text-white">
+                                                <td className="py-3.5 font-bold text-foreground">
                                                     {tx.tenant?.name || 'مساحة عمل'}
                                                 </td>
-                                                <td className="py-3 text-slate-600 dark:text-[#BBCAFF] font-mono">
+                                                <td className="py-3.5 text-muted-foreground font-mono">
                                                     {tx.plan_name}
                                                 </td>
-                                                <td className="py-3 text-slate-800 dark:text-white">
+                                                <td className="py-3.5 text-foreground">
                                                     {tx.sales_agent?.name || 'النظام'}
                                                     {tx.is_admin_action && (
-                                                        <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 block font-normal">مدير عام</span>
+                                                        <span className="text-[9px] font-mono text-purple-500 dark:text-purple-400 block font-normal">مدير عام</span>
                                                     )}
                                                 </td>
-                                                <td className="py-3 font-mono font-bold">
+                                                <td className="py-3.5 font-mono font-bold">
                                                     {tx.is_admin_action ? (
-                                                        <span className="text-[10px] text-purple-600 dark:text-purple-300 font-mono font-normal">إجراء إداري (غير محتسب)</span>
+                                                        <span className="text-[10px] text-purple-500 dark:text-purple-400 font-mono font-normal">إجراء إداري</span>
                                                     ) : tx.amount_collected ? (
-                                                        <span className="text-emerald-600 dark:text-emerald-400 font-mono">${tx.amount_collected.toFixed(2)}</span>
+                                                        <span className="text-primary font-mono">${tx.amount_collected.toFixed(2)}</span>
                                                     ) : (
-                                                        <span className="text-slate-400 dark:text-white/30">—</span>
+                                                        <span className="text-muted-foreground/50">—</span>
                                                     )}
                                                 </td>
-                                                <td className="py-3 text-[11px] text-slate-400 dark:text-white/40">
+                                                <td className="py-3.5 text-[11px] text-muted-foreground">
                                                     {tx.created_at_human}
                                                 </td>
                                             </tr>
@@ -271,7 +280,7 @@ export default function AdminDashboard({ metrics, recentTransactions, topPerform
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </DashboardLayout>
     );
 }

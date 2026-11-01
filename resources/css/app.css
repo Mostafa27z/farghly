@@ -8,7 +8,7 @@
 
 @theme {
     --font-sans:
-        'Cairo', 'Inter', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+        'IBM Plex Sans Arabic', 'Cairo', 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     --font-mono: 'JetBrains Mono', monospace;
 
     --radius-lg: var(--radius);
@@ -59,93 +59,129 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
     *,
     ::after,
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--color-border, currentColor);
     }
 }
 
+/* ========================================
+   FARGHLY AI — Design System Theme
+   Precision SaaS Color Palette
+   ======================================== */
+
 :root {
-    --background: hsl(0, 0%, 100%);
-    --foreground: hsl(0, 0%, 3.9%);
+    /* Base */
+    --background: hsl(220, 20%, 97.5%);
+    --foreground: hsl(224, 71%, 4%);
+
+    /* Cards & Surfaces */
     --card: hsl(0, 0%, 100%);
-    --card-foreground: hsl(0, 0%, 3.9%);
+    --card-foreground: hsl(224, 71%, 4%);
     --popover: hsl(0, 0%, 100%);
-    --popover-foreground: hsl(0, 0%, 3.9%);
-    --primary: hsl(0, 0%, 9%);
-    --primary-foreground: hsl(0, 0%, 98%);
-    --secondary: hsl(0, 0%, 96.1%);
-    --secondary-foreground: hsl(0, 0%, 9%);
-    --muted: hsl(0, 0%, 96.1%);
-    --muted-foreground: hsl(0, 0%, 45.1%);
-    --accent: hsl(0, 0%, 96.1%);
-    --accent-foreground: hsl(0, 0%, 9%);
-    --destructive: hsl(0, 84.2%, 60.2%);
+    --popover-foreground: hsl(224, 71%, 4%);
+
+    /* Primary — Emerald Farghly AI */
+    --primary: hsl(160, 84%, 38%);
+    --primary-foreground: hsl(0, 0%, 100%);
+
+    /* Secondary */
+    --secondary: hsl(220, 14%, 93%);
+    --secondary-foreground: hsl(222, 47%, 15%);
+
+    /* Muted */
+    --muted: hsl(220, 16%, 94%);
+    --muted-foreground: hsl(220, 10%, 46%);
+
+    /* Accent */
+    --accent: hsl(160, 80%, 93%);
+    --accent-foreground: hsl(160, 84%, 25%);
+
+    /* Destructive */
+    --destructive: hsl(0, 84%, 60%);
     --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 92.8%);
-    --input: hsl(0, 0%, 89.8%);
-    --ring: hsl(0, 0%, 3.9%);
-    --chart-1: hsl(12, 76%, 61%);
-    --chart-2: hsl(173, 58%, 39%);
-    --chart-3: hsl(197, 37%, 24%);
-    --chart-4: hsl(43, 74%, 66%);
-    --chart-5: hsl(27, 87%, 67%);
-    --radius: 0.5rem;
-    --sidebar-background: hsl(0, 0%, 98%);
-    --sidebar-foreground: hsl(240, 5.3%, 30%);
-    --sidebar-primary: hsl(0, 0%, 10%);
-    --sidebar-primary-foreground: hsl(0, 0%, 98%);
-    --sidebar-accent: hsl(0, 0%, 94%);
-    --sidebar-accent-foreground: hsl(0, 0%, 30%);
-    --sidebar-border: hsl(0, 0%, 91%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+
+    /* Borders & Inputs */
+    --border: hsl(220, 16%, 89%);
+    --input: hsl(220, 16%, 86%);
+    --ring: hsl(160, 84%, 38%);
+
+    /* Charts */
+    --chart-1: hsl(160, 84%, 39%);
+    --chart-2: hsl(222, 80%, 60%);
+    --chart-3: hsl(280, 65%, 60%);
+    --chart-4: hsl(38, 92%, 50%);
+    --chart-5: hsl(0, 84%, 60%);
+
+    --radius: 0.85rem;
+
+    /* Sidebar */
+    --sidebar-background: hsl(0, 0%, 100%);
+    --sidebar-foreground: hsl(222, 20%, 30%);
+    --sidebar-primary: hsl(160, 84%, 38%);
+    --sidebar-primary-foreground: hsl(0, 0%, 100%);
+    --sidebar-accent: hsl(160, 80%, 93%);
+    --sidebar-accent-foreground: hsl(160, 84%, 25%);
+    --sidebar-border: hsl(220, 16%, 89%);
+    --sidebar-ring: hsl(160, 84%, 38%);
 }
 
 .dark {
-    --background: hsl(0, 0%, 3.9%);
-    --foreground: hsl(0, 0%, 98%);
-    --card: hsl(0, 0%, 3.9%);
-    --card-foreground: hsl(0, 0%, 98%);
-    --popover: hsl(0, 0%, 3.9%);
-    --popover-foreground: hsl(0, 0%, 98%);
-    --primary: hsl(0, 0%, 98%);
-    --primary-foreground: hsl(0, 0%, 9%);
-    --secondary: hsl(0, 0%, 14.9%);
-    --secondary-foreground: hsl(0, 0%, 98%);
-    --muted: hsl(0, 0%, 6.9%);
-    --muted-foreground: hsl(0, 0%, 63.9%);
-    --accent: hsl(0, 0%, 14.9%);
-    --accent-foreground: hsl(0, 0%, 98%);
+    /* Base */
+    --background: hsl(224, 32%, 7%);
+    --foreground: hsl(210, 40%, 96%);
+
+    /* Cards & Surfaces */
+    --card: hsl(224, 28%, 10.5%);
+    --card-foreground: hsl(210, 40%, 96%);
+    --popover: hsl(224, 28%, 10.5%);
+    --popover-foreground: hsl(210, 40%, 96%);
+
+    /* Primary — Emerald Farghly AI */
+    --primary: hsl(160, 84%, 43%);
+    --primary-foreground: hsl(160, 100%, 4%);
+
+    /* Secondary */
+    --secondary: hsl(224, 25%, 15%);
+    --secondary-foreground: hsl(210, 40%, 88%);
+
+    /* Muted */
+    --muted: hsl(224, 22%, 13%);
+    --muted-foreground: hsl(217, 16%, 60%);
+
+    /* Accent */
+    --accent: hsl(160, 60%, 14%);
+    --accent-foreground: hsl(160, 84%, 72%);
+
+    /* Destructive */
     --destructive: hsl(0, 84%, 60%);
     --destructive-foreground: hsl(0, 0%, 98%);
-    --border: hsl(0, 0%, 14.9%);
-    --input: hsl(0, 0%, 14.9%);
-    --ring: hsl(0, 0%, 83.1%);
-    --chart-1: hsl(220, 70%, 50%);
-    --chart-2: hsl(160, 60%, 45%);
-    --chart-3: hsl(30, 80%, 55%);
-    --chart-4: hsl(280, 65%, 60%);
-    --chart-5: hsl(340, 75%, 55%);
-    --sidebar-background: hsl(0, 0%, 7%);
-    --sidebar-foreground: hsl(0, 0%, 80%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0, 0%, 100%);
-    --sidebar-accent: hsl(0, 0%, 15.9%);
-    --sidebar-accent-foreground: hsl(240, 4.8%, 95.9%);
-    --sidebar-border: hsl(0, 0%, 15.9%);
-    --sidebar-ring: hsl(217.2, 91.2%, 59.8%);
+
+    /* Borders & Inputs */
+    --border: hsl(224, 20%, 17%);
+    --input: hsl(224, 20%, 17%);
+    --ring: hsl(160, 84%, 43%);
+
+    /* Charts */
+    --chart-1: hsl(160, 84%, 52%);
+    --chart-2: hsl(222, 80%, 65%);
+    --chart-3: hsl(280, 65%, 65%);
+    --chart-4: hsl(38, 92%, 55%);
+    --chart-5: hsl(0, 84%, 65%);
+
+    /* Sidebar */
+    --sidebar-background: hsl(224, 32%, 8%);
+    --sidebar-foreground: hsl(217, 16%, 64%);
+    --sidebar-primary: hsl(160, 84%, 43%);
+    --sidebar-primary-foreground: hsl(160, 100%, 4%);
+    --sidebar-accent: hsl(160, 60%, 14%);
+    --sidebar-accent-foreground: hsl(160, 84%, 72%);
+    --sidebar-border: hsl(224, 20%, 15%);
+    --sidebar-ring: hsl(160, 84%, 43%);
 }
 
 @layer base {
@@ -155,5 +191,213 @@
 
     body {
         @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
     }
+}
+
+/* ========================================
+   Farghly AI — Typography & Spacing System
+   ======================================== */
+
+@layer base {
+    h1, h2, h3, h4, h5, h6 {
+        @apply font-sans;
+        letter-spacing: -0.02em;
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Selection color */
+    ::selection {
+        background-color: hsl(160, 84%, 39%);
+        color: hsl(160, 100%, 4%);
+    }
+}
+
+/* ========================================
+   RTL / LTR Direction-Aware Animations
+   ======================================== */
+
+/* NavLink animated underline: expands from start to end (RTL: right-to-left, LTR: left-to-right) */
+.nav-link-animated {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.2s ease;
+}
+
+.nav-link-animated::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    inset-inline-start: 0;
+    width: 0%;
+    height: 2.5px;
+    background: var(--color-primary);
+    border-radius: 9999px;
+    transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link-animated:hover::after,
+.nav-link-animated.active::after {
+    width: 100%;
+}
+
+/* Primary Button Slide (Invert to White background + Emerald Text on Hover) */
+.btn-slide,
+.btn-slide-primary {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+    border: 1px solid transparent;
+    transition: transform 0.18s ease, box-shadow 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.btn-slide:active,
+.btn-slide-primary:active {
+    transform: scale(0.98);
+}
+
+.btn-slide::before,
+.btn-slide-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    width: 0%;
+    background: #ffffff;
+    z-index: -1;
+    border-radius: inherit;
+    transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-slide:hover,
+.btn-slide-primary:hover {
+    color: hsl(160, 92%, 24%) !important;
+    border-color: #ffffff;
+    box-shadow: 0 10px 24px -6px rgba(16, 185, 129, 0.4), 0 0 12px rgba(255, 255, 255, 0.3);
+}
+
+.btn-slide:hover svg,
+.btn-slide-primary:hover svg {
+    color: hsl(160, 92%, 24%) !important;
+}
+
+.btn-slide:hover::before,
+.btn-slide-primary:hover::before {
+    width: 100%;
+}
+
+/* Outline / Muted Button Slide (Fills with Primary Green + White Text on Hover) */
+.btn-slide-outline {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    transition: transform 0.18s ease, box-shadow 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.btn-slide-outline:active {
+    transform: scale(0.98);
+}
+
+.btn-slide-outline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    width: 0%;
+    background: var(--color-primary);
+    z-index: -1;
+    border-radius: inherit;
+    transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-slide-outline:hover {
+    color: #ffffff !important;
+    border-color: var(--color-primary);
+    box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.35);
+}
+
+.btn-slide-outline:hover svg {
+    color: #ffffff !important;
+}
+
+.btn-slide-outline:hover::before {
+    width: 100%;
+}
+
+/* Subtle glow card */
+.glow-card {
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glow-card:hover {
+    transform: translateY(-3px);
+    border-color: hsla(160, 84%, 42%, 0.45);
+    box-shadow: 0 12px 32px -10px hsla(160, 84%, 40%, 0.18);
+}
+
+/* Background Grid Mesh */
+.bg-grid-pattern {
+    background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0);
+    background-size: 32px 32px;
+}
+
+/* ========================================
+   Webkit Autofill Override (prevents white flash in dark mode)
+   ======================================== */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px hsl(220, 20%, 97.5%) inset !important;
+    -webkit-text-fill-color: hsl(224, 71%, 4%) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px hsl(224, 32%, 8%) inset !important;
+    -webkit-text-fill-color: hsl(210, 40%, 96%) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* ========================================
+   Scrollbar Styles
+   ======================================== */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(220, 13%, 82%);
+    border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+    background: hsl(220, 16%, 22%);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(160, 84%, 39%);
 }

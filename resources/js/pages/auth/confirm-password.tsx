@@ -1,10 +1,13 @@
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
-
-import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input';
 import AuthLayout from '@/layouts/auth-layout';
+import { useLanguage } from '@/hooks/use-language';
+import { Loader2, ShieldCheck } from 'lucide-react';
 
 export default function ConfirmPassword() {
+    const { isRtl } = useLanguage();
     const { data, setData, post, processing, errors, reset } = useForm({
         password: '',
     });
@@ -18,48 +21,49 @@ export default function ConfirmPassword() {
 
     return (
         <AuthLayout
-            title="تأكيد كلمة المرور"
-            description="هذه منطقة آمنة ومحمية من التطبيق. يرجى تأكيد كلمة المرور الخاصة بك للمتابعة."
+            title={isRtl ? 'تأكيد كلمة المرور' : 'Confirm Password'}
+            description={
+                isRtl
+                    ? 'هذه منطقة آمنة ومحمية من التطبيق. يرجى تأكيد كلمة المرور الخاصة بك للمتابعة.'
+                    : 'This is a secure area of the application. Please confirm your password before continuing.'
+            }
+            badgeText={isRtl ? 'تأكيد أمني' : 'Security Confirmation'}
         >
-            <Head title="تأكيد كلمة المرور | فرغلي" />
+            <Head title={isRtl ? 'تأكيد كلمة المرور | فرغلي' : 'Confirm Password | Farghly'} />
 
-            <form onSubmit={submit} className="flex flex-col gap-5 text-right">
-                <div className="space-y-1.5">
-                    <label htmlFor="password" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
-                        كلمة المرور <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Password</span>
-                    </label>
-                    <input
-                        id="password"
-                        type="password"
-                        name="password"
-                        required
-                        autoFocus
-                        autoComplete="current-password"
-                        value={data.password}
-                        onChange={(e) => setData('password', e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
-                    />
-                    <InputError message={errors.password} />
-                </div>
-
-                <button
-                    type="submit"
-                    className="w-full py-3 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            <form onSubmit={submit} className="flex flex-col gap-5 text-start">
+                <FormInput
+                    id="password"
+                    label={isRtl ? 'كلمة المرور الحالية' : 'Current Password'}
+                    isPassword
+                    required
+                    autoFocus
+                    autoComplete="current-password"
+                    value={data.password}
+                    onChange={(e) => setData('password', e.target.value)}
+                    placeholder="••••••••"
+                    error={errors.password}
                     disabled={processing}
+                />
+
+                <Button
+                    type="submit"
+                    size="lg"
+                    disabled={processing}
+                    className="w-full mt-2 shadow-lg shadow-primary/25"
                 >
                     {processing ? (
                         <>
-                            <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                            <span>جاري التحقق...</span>
+                            <Loader2 className="size-4 animate-spin" />
+                            <span>{isRtl ? 'جاري التحقق...' : 'Verifying...'}</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-outlined text-lg">security</span>
-                            <span>تأكيد المتابعة</span>
+                            <ShieldCheck className="size-4" />
+                            <span>{isRtl ? 'تأكيد المتابعة' : 'Confirm & Proceed'}</span>
                         </>
                     )}
-                </button>
+                </Button>
             </form>
         </AuthLayout>
     );

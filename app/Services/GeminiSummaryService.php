@@ -10,11 +10,12 @@ class GeminiSummaryService
 {
     protected string $apiKey;
     protected string $model;
+    protected ?string $lastErrorMessage = null;
 
     public function __construct()
     {
         $this->apiKey = config('services.gemini.key') ?? '';
-        $this->model = config('services.gemini.model') ?? 'gemini-2.5-flash';
+        $this->model = config('services.gemini.model') ?? 'gemini-3.8-flash';
     }
 
     /**
@@ -46,6 +47,7 @@ class GeminiSummaryService
             $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}";
 
             $response = Http::timeout(90)
+                ->withoutVerifying()
                 ->withHeaders(['Content-Type' => 'application/json'])
                 ->post($apiUrl, [
                     'contents' => [
@@ -145,10 +147,11 @@ class GeminiSummaryService
                 $chunkHtml = $this->proofreadChunk($transcript, $chunkText, $index + 1, $totalChunks, $customInstructions);
 
                 if ($chunkHtml === null) {
+                    $errorDetail = $this->lastErrorMessage ? " ({$this->lastErrorMessage})" : '';
                     return [
                         'success' => false,
-                        'message_ar' => 'فشل الاتصال بخدمة الذكاء الاصطناعي أثناء التدقيق اللغوي (الجزء ' . ($index + 1) . ' من ' . $totalChunks . '). حاول مرة أخرى.',
-                        'message_en' => 'Gemini proofread request failed.',
+                        'message_ar' => 'فشل الاتصال بخدمة الذكاء الاصطناعي أثناء التدقيق اللغوي' . $errorDetail . '. يرجى التأكد من صلاحية مفتاح Gemini API.',
+                        'message_en' => 'Gemini proofread request failed: ' . ($this->lastErrorMessage ?? 'unknown error'),
                     ];
                 }
 
@@ -206,6 +209,7 @@ class GeminiSummaryService
         }
 
         $response = Http::timeout(180)
+            ->withoutVerifying()
             ->withHeaders(['Content-Type' => 'application/json'])
             ->post($apiUrl, [
                 'contents' => [['parts' => [['text' => $prompt]]]],
@@ -213,6 +217,8 @@ class GeminiSummaryService
             ]);
 
         if (!$response->successful()) {
+            $errBody = $response->json();
+            $this->lastErrorMessage = $errBody['error']['message'] ?? ('رمز الاستجابة: HTTP ' . $response->status());
             Log::error('Gemini proofread API call failed', [
                 'status' => $response->status(),
                 'error' => $response->body(),

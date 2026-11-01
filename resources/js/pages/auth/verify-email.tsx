@@ -1,10 +1,13 @@
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
-
 import TextLink from '@/components/text-link';
+import { Button } from '@/components/ui/button';
 import AuthLayout from '@/layouts/auth-layout';
+import { useLanguage } from '@/hooks/use-language';
+import { Loader2, MailCheck, Send } from 'lucide-react';
 
 export default function VerifyEmail({ status }: { status?: string }) {
+    const { isRtl } = useLanguage();
     const { post, processing } = useForm({});
 
     const submit: FormEventHandler = (e) => {
@@ -14,39 +17,52 @@ export default function VerifyEmail({ status }: { status?: string }) {
 
     return (
         <AuthLayout
-            title="تأكيد البريد الإلكتروني"
-            description="شكراً لانضمامك! يرجى التحقق من صندوق الوارد الخاص بك والنقر على الرابط المرسل لتفعيل حسابك بالكامل."
+            title={isRtl ? 'تأكيد البريد الإلكتروني' : 'Verify Email Address'}
+            description={
+                isRtl
+                    ? 'شكراً لانضمامك! يرجى التحقق من صندوق الوارد الخاص بك والنقر على الرابط المرسل لتفعيل حسابك بالكامل.'
+                    : 'Thanks for signing up! Please check your inbox and click the verification link to activate your account.'
+            }
+            badgeText={isRtl ? 'تفعيل الحساب' : 'Account Activation'}
         >
-            <Head title="تأكيد البريد الإلكتروني | فرغلي" />
+            <Head title={isRtl ? 'تأكيد البريد الإلكتروني | فرغلي' : 'Verify Email | Farghly'} />
 
             {status === 'verification-link-sent' && (
-                <div className="mb-4 text-center text-xs font-mono text-[#4EDEA3] bg-[#10B981]/10 p-3 rounded-xl border border-[#10B981]/30">
-                    تم إرسال رابط تأكيد جديد بنجاح إلى عنوان بريدك الإلكتروني.
+                <div className="mb-5 text-center text-xs font-mono font-medium text-primary bg-primary/10 p-3.5 rounded-xl border border-primary/25">
+                    {isRtl
+                        ? 'تم إرسال رابط تأكيد جديد بنجاح إلى عنوان بريدك الإلكتروني.'
+                        : 'A fresh verification link has been sent to your email address.'}
                 </div>
             )}
 
-            <form onSubmit={submit} className="flex flex-col gap-4 text-center">
-                <button
+            <form onSubmit={submit} className="flex flex-col gap-5 text-center">
+                <Button
                     type="submit"
-                    className="w-full py-3 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    size="lg"
                     disabled={processing}
+                    className="w-full shadow-lg shadow-primary/25"
                 >
                     {processing ? (
                         <>
-                            <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                            <span>جاري إرسال الرابط...</span>
+                            <Loader2 className="size-4 animate-spin" />
+                            <span>{isRtl ? 'جاري إرسال الرابط...' : 'Sending link...'}</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-outlined text-lg">send</span>
-                            <span>إعادة إرسال رابط التأكيد</span>
+                            <Send className="size-4" />
+                            <span>{isRtl ? 'إعادة إرسال رابط التأكيد' : 'Resend Verification Link'}</span>
                         </>
                     )}
-                </button>
+                </Button>
 
-                <div className="pt-4 border-t border-slate-200 dark:border-white/10">
-                    <TextLink href={route('logout')} method="post" as="button" className="text-xs text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors">
-                        تسجيل الخروج
+                <div className="pt-4 border-t border-border">
+                    <TextLink
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
+                    >
+                        {isRtl ? 'تسجيل الخروج' : 'Log out'}
                     </TextLink>
                 </div>
             </form>

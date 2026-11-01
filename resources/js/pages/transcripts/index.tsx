@@ -1,6 +1,13 @@
-import ThemeToggle from '@/components/theme-toggle';
-import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
-import React, { useState } from 'react';
+import DashboardLayout from '@/layouts/dashboard-layout';
+import { useLanguage } from '@/hooks/use-language';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowLeft, ArrowRight, FolderOpen, Plus, Sparkles, Video } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import KpiSummaryStrip from './components/kpi-summary-strip';
+import TranscriptGridCard from './components/transcript-grid-card';
+import TranscriptListCard from './components/transcript-list-card';
+import TranscriptsFilterBar from './components/transcripts-filter-bar';
+import YoutubeExtractCard from './components/youtube-extract-card';
 
 interface TranscriptItem {
     id: string;
@@ -40,18 +47,28 @@ interface Props {
 }
 
 export default function TranscriptsIndex({ transcripts, tenant, filters }: Props) {
-    const { auth } = usePage().props as any;
+    const { isRtl } = useLanguage();
     const [search, setSearch] = useState(filters.search || '');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    const { data, setData, post, processing, errors, reset } = useForm({
-        url: '',
-    });
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('farghly_library_view_mode');
+            if (saved === 'grid' || saved === 'list') {
+                setViewMode(saved);
+            }
+        } catch {
+            // ignore
+        }
+    }, []);
 
-    const handleExtract = (e: React.FormEvent) => {
-        e.preventDefault();
-        post(route('transcripts.store'), {
-            onSuccess: () => reset('url'),
-        });
+    const handleViewModeChange = (mode: 'grid' | 'list') => {
+        setViewMode(mode);
+        try {
+            localStorage.setItem('farghly_library_view_mode', mode);
+        } catch {
+            // ignore
+        }
     };
 
     const handleSearch = (e: React.FormEvent) => {
@@ -59,270 +76,129 @@ export default function TranscriptsIndex({ transcripts, tenant, filters }: Props
         router.get(route('dashboard'), { search }, { preserveState: true });
     };
 
-    const formatDuration = (seconds: number) => {
-        const hrs = Math.floor(seconds / 3600);
-        const mins = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        if (hrs > 0) {
-            return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    const focusUrlInput = () => {
+        const input = document.getElementById('youtube-url-input') as HTMLInputElement;
+        if (input) {
+            input.focus();
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
     return (
-        <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-[#0A0E16] text-slate-800 dark:text-[#DFE2EE] font-sans antialiased transition-colors">
-            <Head title={`مساحة العمل | ${tenant.name}`} />
+        <DashboardLayout
+            title={isRtl ? 'المكتبة والتفريغ الذكي' : 'Library & Transcripts'}
+            subtitle={
+                isRtl
+                    ? 'تفريغ وتلخيص المحاضرات وتحويلها لمذكرات قابلة للطباعة بهويتك الأكاديمية'
+                    : 'AI-powered lecture extraction, summarization, and branding'
+            }
+        >
+            <Head title={isRtl ? `المكتبة والتفريغ | ${tenant?.name || 'فرغلي'}` : `Transcripts | ${tenant?.name || 'Farghly'}`} />
 
-            {/* Top Workspace Header */}
-            <header className="sticky top-0 z-40 bg-white/90 dark:bg-[#0F131C]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-3.5 sm:px-6 py-3 sm:py-4 shadow-xs">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-                    <div className="flex flex-wrap items-center justify-between w-full md:w-auto gap-2 sm:gap-4">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            <Link href="/" className="flex items-center gap-2 group">
-                                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-tr from-[#10B981] to-[#4EDEA3] flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] shrink-0">
-                                    <span className="material-symbols-outlined text-[#003824] text-lg sm:text-xl font-bold">graphic_eq</span>
-                                </div>
-                                <span className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white">فرغلي</span>
-                            </Link>
+            <div className="w-full space-y-6 sm:space-y-8">
+                {/* 1. Metric Cards Strip (Full Width) */}
+                <KpiSummaryStrip tenant={tenant} totalTranscripts={transcripts.total} />
 
-                            <div className="h-4 w-[1px] bg-slate-200 dark:bg-white/20 hidden sm:block" />
+                {/* 2. YouTube Instant Extraction Form (Full Width) */}
+                <YoutubeExtractCard />
 
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                                <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[120px] sm:max-w-none">{tenant.name}</span>
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] text-[10px] sm:text-xs font-mono font-bold border border-emerald-200 dark:border-[#10B981]/30 whitespace-nowrap">
-                                    {tenant.plan_name}
-                                </span>
-                            </div>
-                        </div>
+                {/* 3. Search and Header Controls */}
+                <div className="pt-2">
+                    <TranscriptsFilterBar
+                        search={search}
+                        onSearchChange={setSearch}
+                        onSubmitSearch={handleSearch}
+                        totalCount={transcripts.total}
+                        viewMode={viewMode}
+                        onViewModeChange={handleViewModeChange}
+                    />
+                </div>
 
-                        {/* Mobile quick actions */}
-                        <div className="flex items-center gap-2 md:hidden">
-                            <ThemeToggle />
-                            <Link
-                                href={route('logout')}
-                                method="post"
-                                as="button"
-                                className="text-[11px] text-slate-500 dark:text-[#BBCAFF] hover:text-red-500 font-bold transition-colors cursor-pointer px-1.5 py-1"
-                            >
-                                خروج
-                            </Link>
-                        </div>
+                {/* 4. Transcripts Cards (Grid or List View) */}
+                {transcripts.data.length > 0 ? (
+                    viewMode === 'grid' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5 w-full">
+                            {transcripts.data.map((item) => (
+                                <TranscriptGridCard key={item.id} transcript={item} />
+                            ))}
 
-                        {/* Navigation links (Desktop) */}
-                        <nav className="hidden lg:flex items-center gap-1.5 mr-4">
-                            <Link
-                                href={route('dashboard')}
-                                className="px-3 py-1 rounded-lg text-xs font-bold bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30"
-                            >
-                                المكتبة والتفريغ
-                            </Link>
-                            <Link
-                                href={route('themes.index')}
-                                className="px-3 py-1 rounded-lg text-xs font-bold text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all flex items-center gap-1.5"
-                            >
-                                <span className="material-symbols-outlined text-sm text-emerald-600 dark:text-[#4EDEA3]">palette</span>
-                                <span>الهوية وقوالب المستندات</span>
-                            </Link>
-                            {auth?.is_staff && (
-                                <Link
-                                    href={auth?.is_super_admin ? route('admin.dashboard') : route('sales.index')}
-                                    className="px-3 py-1 rounded-lg text-xs font-bold bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-all flex items-center gap-1.5"
+                            {/* Add More Lecture Action Card (when 1 or 2 items exist to balance the row) */}
+                            {transcripts.data.length <= 2 && (
+                                <button
+                                    type="button"
+                                    onClick={focusUrlInput}
+                                    className="rounded-3xl border-2 border-dashed border-border/80 hover:border-primary/50 bg-card/40 hover:bg-card p-6 flex flex-col items-center justify-center text-center gap-3 transition-all duration-300 min-h-[260px] group cursor-pointer"
                                 >
-                                    <span className="material-symbols-outlined text-sm">admin_panel_settings</span>
-                                    <span>{auth?.is_super_admin ? 'لوحة الإدارة العامة' : 'بوابة المبيعات'}</span>
-                                </Link>
-                            )}
-                        </nav>
-                    </div>
-
-                    {/* Quota & User Bar */}
-                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-4 text-xs w-full md:w-auto">
-                        {/* Mobile quick links */}
-                        <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
-                            <Link
-                                href={route('dashboard')}
-                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30 whitespace-nowrap"
-                            >
-                                المكتبة
-                            </Link>
-                            <Link
-                                href={route('themes.index')}
-                                className="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/5 transition-all flex items-center gap-1 whitespace-nowrap"
-                            >
-                                <span className="material-symbols-outlined text-xs text-emerald-600 dark:text-[#4EDEA3]">palette</span>
-                                <span>الهوية والقوالب</span>
-                            </Link>
-                            {auth?.is_staff && (
-                                <Link
-                                    href={auth?.is_super_admin ? route('admin.dashboard') : route('sales.index')}
-                                    className="px-2 py-1 rounded-lg text-[11px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30 whitespace-nowrap"
-                                >
-                                    الإدارة
-                                </Link>
-                            )}
-                        </div>
-
-                        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-[#1C2028] border border-slate-200 dark:border-white/10 shadow-xs w-full sm:w-auto">
-                            <span className="text-slate-600 dark:text-[#BBCAFF] text-[11px] sm:text-xs">رصيد الفيديوهات:</span>
-                            <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold text-xs sm:text-sm">
-                                    {(tenant.remaining_videos ?? tenant.remaining_minutes ?? 0).toLocaleString()} فيديو
-                                </span>
-                                <span className="text-slate-300 dark:text-white/20">/</span>
-                                <span className="font-mono text-slate-600 dark:text-[#BBCAFF] text-xs">
-                                    {(tenant.monthly_videos_limit ?? tenant.monthly_minutes_limit ?? 0).toLocaleString()} فيديو
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="hidden md:flex items-center gap-3">
-                            <ThemeToggle />
-
-                            <Link
-                                href={route('logout')}
-                                method="post"
-                                as="button"
-                                className="text-slate-600 dark:text-[#BBCAFF] hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
-                            >
-                                تسجيل الخروج
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Stage */}
-            <main className="max-w-7xl mx-auto px-3.5 sm:px-6 py-6 sm:py-8">
-                {/* 1. YouTube Transcribe Action Box */}
-                <div className="mb-8 sm:mb-10 p-4 sm:p-6 rounded-2xl bg-white dark:bg-gradient-to-tr dark:from-[#141822] dark:to-[#181C24] border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-[#10B981]/10 rounded-full blur-[90px] pointer-events-none" />
-
-                    <div className="relative z-10 max-w-3xl">
-                        <span className="text-xs font-mono text-emerald-600 dark:text-[#4EDEA3] font-bold uppercase tracking-wider">
-                            استخراج فوري
-                        </span>
-                        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-1 mb-2">
-                            تفريغ محتوى فيديو يوتيوب جديد
-                        </h2>
-                        <p className="text-xs sm:text-sm text-slate-600 dark:text-[#BBCAFF] mb-4 sm:mb-6">
-                            أدخل رابط أي فيديو من يوتيوب (فيديو عادي، شورتس، أو بث مباشر مسجل) لاستخراج النصوص وتوقيتاتها بدقة.
-                        </p>
-
-                        <form onSubmit={handleExtract} className="flex flex-col sm:flex-row items-center gap-3">
-                            <div className="relative flex-1 w-full">
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-red-500 material-symbols-outlined text-2xl">
-                                    smart_display
-                                </span>
-                                <input
-                                    type="text"
-                                    value={data.url}
-                                    onChange={(e) => setData('url', e.target.value)}
-                                    placeholder="https://www.youtube.com/watch?v=..."
-                                    className="w-full pl-4 pr-12 py-3 rounded-xl bg-slate-50 dark:bg-[#0A0E16]/80 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={processing}
-                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all shrink-0 cursor-pointer disabled:opacity-50"
-                            >
-                                {processing ? (
-                                    <>
-                                        <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                                        <span>جاري الاستخراج...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="material-symbols-outlined text-lg">subtitles</span>
-                                        <span>تفريغ النص</span>
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        {errors.url && (
-                            <p className="text-xs text-red-600 dark:text-red-400 mt-3 font-medium bg-red-50 dark:bg-red-950/40 p-2.5 rounded-lg border border-red-200 dark:border-red-800/40">
-                                {errors.url}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                {/* 2. Transcripts Library Header */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">سجل الفيديوهات المفرغة</h3>
-                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">إجمالي الملفات في مساحة العمل: {transcripts.total}</p>
-                    </div>
-
-                    {/* Search Form */}
-                    <form onSubmit={handleSearch} className="w-full sm:w-80 relative">
-                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 material-symbols-outlined text-xl">
-                            search
-                        </span>
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="بحث في العناوين والنصوص..."
-                            className="w-full pl-3 pr-10 py-2 rounded-xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] outline-none shadow-xs"
-                        />
-                    </form>
-                </div>
-
-                {/* 3. Grid of Transcripts */}
-                {transcripts.data.length === 0 ? (
-                    <div className="p-12 text-center rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 shadow-xs">
-                        <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-white/20 mb-3">folder_open</span>
-                        <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">لا توجد ملفات مفرغة حتى الآن</h4>
-                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">الصق أول رابط يوتيوب بالأعلى لتبدأ بتفريغ نصوصك وحفظها في مساحة العمل.</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {transcripts.data.map((item) => (
-                            <Link
-                                key={item.id}
-                                href={route('transcripts.show', item.id)}
-                                className="group rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 hover:border-emerald-500/50 dark:hover:border-[#10B981]/40 transition-all overflow-hidden flex flex-col justify-between shadow-xs dark:shadow-lg"
-                            >
-                                <div>
-                                    {/* Thumbnail with duration badge */}
-                                    <div className="relative aspect-video bg-black/60 overflow-hidden">
-                                        <img
-                                            src={item.thumbnail_url || `https://i.ytimg.com/vi/${item.youtube_id}/hqdefault.jpg`}
-                                            alt={item.title}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                        />
-                                        <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded bg-black/80 font-mono text-[11px] text-white">
-                                            {formatDuration(item.duration_seconds)}
-                                        </div>
-                                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-[#10B981] font-mono text-[10px] text-[#003824] font-bold uppercase">
-                                            {item.language}
-                                        </div>
+                                    <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <Plus className="size-6" />
                                     </div>
-
-                                    {/* Content Info */}
-                                    <div className="p-4">
-                                        <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-relaxed mb-1.5 group-hover:text-emerald-600 dark:group-hover:text-[#4EDEA3] transition-colors">
-                                            {item.title}
+                                    <div className="space-y-1">
+                                        <h4 className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
+                                            {isRtl ? 'إضافة محاضرة جديدة' : 'Add Another Lecture'}
                                         </h4>
-                                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF] mb-3">{item.channel_name || 'قناة يوتيوب'}</p>
+                                        <p className="text-xs text-muted-foreground max-w-[200px]">
+                                            {isRtl
+                                                ? 'الصق رابط يوتيوب بالأعلى لبدء تفريغ وصياغة ملخص جديد'
+                                                : 'Paste another YouTube link above to expand your workspace'}
+                                        </p>
                                     </div>
-                                </div>
-
-                                <div className="px-4 py-3 bg-slate-50 dark:bg-[#0F131C] border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-xs text-slate-600 dark:text-[#BBCAFF]">
-                                    <span>{new Date(item.created_at).toLocaleDateString('ar-SA')}</span>
-                                    <span className="text-emerald-600 dark:text-[#4EDEA3] font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                                        <span>عرض النص والتصدير</span>
-                                        <span className="material-symbols-outlined text-sm">arrow_back</span>
-                                    </span>
-                                </div>
-                            </Link>
-                        ))}
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-3 w-full">
+                            {transcripts.data.map((item) => (
+                                <TranscriptListCard key={item.id} transcript={item} />
+                            ))}
+                        </div>
+                    )
+                ) : (
+                    <div className="w-full p-8 sm:p-14 text-center rounded-3xl bg-card border border-dashed border-border/80 flex flex-col items-center justify-center gap-3">
+                        <div className="size-14 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center">
+                            <FolderOpen className="size-7 stroke-[1.8]" />
+                        </div>
+                        <h4 className="font-extrabold text-base text-foreground">
+                            {search
+                                ? (isRtl ? 'لم يتم العثور على محاضرات تطابق بحثك' : 'No lectures match your search')
+                                : (isRtl ? 'لا توجد محاضرات مفرغة حتى الآن' : 'No transcripts in your library yet')}
+                        </h4>
+                        <p className="text-xs text-muted-foreground max-w-md">
+                            {isRtl
+                                ? 'ضع رابط أي فيديو يوتيوب في النموذج بالأعلى لبدء استخراج النص فورياً وصياغة المذكرات الذكية.'
+                                : 'Paste any YouTube URL in the form above to start extracting word-level transcripts and smart notes.'}
+                        </p>
                     </div>
                 )}
-            </main>
-        </div>
+
+                {/* 5. Pagination Controls */}
+                {transcripts.last_page > 1 && (
+                    <div className="flex items-center justify-center gap-1.5 pt-4">
+                        {transcripts.links.map((link, idx) => {
+                            if (!link.url) {
+                                return (
+                                    <span
+                                        key={idx}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                        className="px-3 py-1.5 text-xs text-muted-foreground/50 rounded-xl"
+                                    />
+                                );
+                            }
+                            return (
+                                <Link
+                                    key={idx}
+                                    href={link.url}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-colors ${
+                                        link.active
+                                            ? 'bg-primary text-primary-foreground shadow-xs'
+                                            : 'bg-card border border-border/70 text-foreground hover:bg-muted'
+                                    }`}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </DashboardLayout>
     );
 }

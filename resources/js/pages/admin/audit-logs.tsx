@@ -1,4 +1,5 @@
-import StaffHeader from '@/components/staff-header';
+import DashboardLayout from '@/layouts/dashboard-layout';
+import { useLanguage } from '@/hooks/use-language';
 import { Head, router } from '@inertiajs/react';
 import React, { useState } from 'react';
 
@@ -49,60 +50,52 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
         );
     };
 
+    const { isRtl } = useLanguage();
+
     return (
-        <div dir="rtl" className="min-h-screen bg-slate-50 dark:bg-[#0A0E16] text-slate-800 dark:text-[#DFE2EE] font-sans antialiased transition-colors">
-            <Head title="سجل تدقيق الاشتراكات العام | فرغلي" />
+        <DashboardLayout
+            title={isRtl ? 'سجل التدقيق والعمليات' : 'Audit Logs & Transactions'}
+            subtitle={isRtl ? 'تتبع تاريخي زمني مفصل لكل عملية تسجيل أو تجديد أو تعديل رصيد' : 'Comprehensive audit trail of client onboarding and renewals'}
+            actionSlot={
+                <div className="flex flex-wrap items-center gap-2">
+                    <select
+                        value={salesId}
+                        onChange={(e) => {
+                            setSalesId(e.target.value);
+                            handleFilter(e.target.value, actionType);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-card border border-border text-xs text-foreground outline-hidden focus:border-primary shadow-xs"
+                    >
+                        <option value="" className="text-foreground dark:bg-card">{isRtl ? 'جميع مناديب المبيعات' : 'All Agents'}</option>
+                        {salesAgents.map((agent) => (
+                            <option key={agent.id} value={agent.id} className="text-foreground dark:bg-card">{agent.name}</option>
+                        ))}
+                    </select>
 
-            <StaffHeader />
-
-            <main className="max-w-7xl mx-auto px-6 py-8">
-                {/* Header Title */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8 pb-4 border-b border-slate-200 dark:border-white/10">
-                    <div>
-                        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white mb-1">
-                            سجل العمليات والتدقيق الشامل (Audit Trail)
-                        </h1>
-                        <p className="text-xs text-slate-500 dark:text-[#BBCAFF]">
-                            تتبع تاريخي زمني مفصل لكل عملية تسجيل عميل أو تجديد اشتراك أو تعديل رصيد دقائق تمت في المنظومة.
-                        </p>
-                    </div>
-
-                    {/* Filter controls */}
-                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                        <select
-                            value={salesId}
-                            onChange={(e) => {
-                                setSalesId(e.target.value);
-                                handleFilter(e.target.value, actionType);
-                            }}
-                            className="px-3 py-2 rounded-xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 text-xs text-slate-800 dark:text-white outline-none focus:border-[#10B981] shadow-xs"
-                        >
-                            <option value="" className="text-slate-900 dark:text-white dark:bg-[#141822]">جميع مناديب المبيعات</option>
-                            {salesAgents.map((agent) => (
-                                <option key={agent.id} value={agent.id} className="text-slate-900 dark:text-white dark:bg-[#141822]">{agent.name}</option>
-                            ))}
-                        </select>
-
-                        <select
-                            value={actionType}
-                            onChange={(e) => {
-                                setActionType(e.target.value);
-                                handleFilter(salesId, e.target.value);
-                            }}
-                            className="px-3 py-2 rounded-xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 text-xs text-slate-800 dark:text-white outline-none focus:border-[#10B981] shadow-xs"
-                        >
-                            <option value="" className="text-slate-900 dark:text-white dark:bg-[#141822]">جميع أنواع العمليات</option>
-                            <option value="new_account" className="text-slate-900 dark:text-white dark:bg-[#141822]">اشتراك جديد (New Client)</option>
-                            <option value="renew" className="text-slate-900 dark:text-white dark:bg-[#141822]">تجديد اشتراك (Renewal)</option>
-                        </select>
-                    </div>
+                    <select
+                        value={actionType}
+                        onChange={(e) => {
+                            setActionType(e.target.value);
+                            handleFilter(salesId, e.target.value);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-card border border-border text-xs text-foreground outline-hidden focus:border-primary shadow-xs"
+                    >
+                        <option value="" className="text-foreground dark:bg-card">{isRtl ? 'جميع أنواع العمليات' : 'All Actions'}</option>
+                        <option value="new_account" className="text-foreground dark:bg-card">{isRtl ? 'اشتراك جديد' : 'New Client'}</option>
+                        <option value="renew" className="text-foreground dark:bg-card">{isRtl ? 'تجديد اشتراك' : 'Renewal'}</option>
+                    </select>
                 </div>
+            }
+        >
+            <Head title={isRtl ? 'سجل تدقيق الاشتراكات العام | فرغلي' : 'Audit Logs & Transactions | Farghly'} />
+
+            <div className="space-y-6">
 
                 {/* Audit Logs Table */}
-                <div className="rounded-2xl bg-white dark:bg-[#141822] border border-slate-200 dark:border-white/10 overflow-hidden shadow-xs dark:shadow-xl mb-6">
+                <div className="rounded-2xl bg-card border border-border overflow-hidden shadow-xs dark:shadow-xl mb-6">
                     <div className="overflow-x-auto">
                         <table className="w-full text-right text-xs">
-                            <thead className="bg-slate-50 dark:bg-[#0F131C] text-slate-600 dark:text-[#BBCAFF] border-b border-slate-200 dark:border-white/10">
+                            <thead className="bg-muted text-muted-foreground border-b border-border">
                                 <tr>
                                     <th className="py-3.5 px-4 font-bold">التاريخ والوقت</th>
                                     <th className="py-3.5 px-4 font-bold">الموظف المنفذ</th>
@@ -115,35 +108,35 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
                                     <th className="py-3.5 px-4 font-bold">ملاحظات</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                            <tbody className="divide-y divide-border/50">
                                 {logs.data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={9} className="py-12 text-center text-slate-500 dark:text-[#BBCAFF]">
+                                        <td colSpan={9} className="py-12 text-center text-muted-foreground">
                                             لا توجد أي سجلات تطابق الفلترة المحددة.
                                         </td>
                                     </tr>
                                 ) : (
                                     logs.data.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-[#BBCAFF] whitespace-nowrap">
+                                        <tr key={item.id} className="hover:bg-muted/50 transition-colors">
+                                            <td className="py-3.5 px-4 font-mono text-muted-foreground whitespace-nowrap">
                                                 {item.created_at}
-                                                <span className="text-[10px] block text-slate-400 dark:text-white/40">{item.created_at_human}</span>
+                                                <span className="text-[10px] block text-muted-foreground/60">{item.created_at_human}</span>
                                             </td>
 
-                                            <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                                            <td className="py-3.5 px-4 font-bold text-foreground whitespace-nowrap">
                                                 {item.sales_agent?.name || 'النظام'}
                                                 {item.is_super_admin_action && (
                                                     <span className="text-[9px] font-mono text-purple-600 dark:text-purple-400 block font-normal">مدير عام</span>
                                                 )}
                                             </td>
 
-                                            <td className="py-3.5 px-4 font-bold text-emerald-700 dark:text-[#4EDEA3] whitespace-nowrap">
+                                            <td className="py-3.5 px-4 font-bold text-primary whitespace-nowrap">
                                                 {item.tenant?.name || '—'}
                                             </td>
 
                                             <td className="py-3.5 px-4 whitespace-nowrap">
                                                 {item.action_type === 'new_account' ? (
-                                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-[#10B981]/15 text-emerald-700 dark:text-[#4EDEA3] border border-emerald-200 dark:border-[#10B981]/30">
+                                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/25">
                                                         تسجيل عميل جديد
                                                     </span>
                                                 ) : (
@@ -153,8 +146,8 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
                                                 )}
                                             </td>
 
-                                            <td className="py-3.5 px-4 whitespace-nowrap font-mono text-slate-900 dark:text-white">
-                                                {item.plan_name} <span className="text-slate-400 dark:text-white/40">({item.duration_days} يوم)</span>
+                                            <td className="py-3.5 px-4 whitespace-nowrap font-mono text-foreground">
+                                                {item.plan_name} <span className="text-muted-foreground/60">({item.duration_days} يوم)</span>
                                             </td>
 
                                             <td className="py-3.5 px-4 font-mono text-amber-600 dark:text-amber-400 whitespace-nowrap">
@@ -163,22 +156,22 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
                                                     : (item.minutes_added > 0 ? `+${Math.round(item.minutes_added / 20)} فيديو` : '—')}
                                             </td>
 
-                                            <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600 dark:text-[#BBCAFF] whitespace-nowrap">
+                                            <td className="py-3.5 px-4 font-mono text-[11px] text-muted-foreground whitespace-nowrap">
                                                 {item.previous_expires_at ? `${item.previous_expires_at} → ` : 'جديد → '}
-                                                <strong className="text-slate-900 dark:text-white">{item.new_expires_at || '—'}</strong>
+                                                <strong className="text-foreground">{item.new_expires_at || '—'}</strong>
                                             </td>
 
                                             <td className="py-3.5 px-4 font-mono font-bold whitespace-nowrap">
                                                 {item.is_super_admin_action ? (
                                                     <span className="text-[10px] text-purple-600 dark:text-purple-300 font-mono font-normal">إجراء إداري (غير محتسب كإيراد)</span>
                                                 ) : item.amount_collected ? (
-                                                    <span className="text-emerald-600 dark:text-emerald-400 font-mono">${item.amount_collected.toFixed(2)}</span>
+                                                    <span className="text-primary font-mono">${item.amount_collected.toFixed(2)}</span>
                                                 ) : (
-                                                    <span className="text-slate-400 dark:text-white/30">—</span>
+                                                    <span className="text-muted-foreground/50">—</span>
                                                 )}
                                             </td>
 
-                                            <td className="py-3.5 px-4 text-slate-600 dark:text-[#BBCAFF] max-w-xs truncate" title={item.notes || ''}>
+                                            <td className="py-3.5 px-4 text-muted-foreground max-w-xs truncate" title={item.notes || ''}>
                                                 {item.notes || '—'}
                                             </td>
                                         </tr>
@@ -199,15 +192,15 @@ export default function AdminAuditLogs({ logs, salesAgents, filters }: Props) {
                                 onClick={() => link.url && router.get(link.url, {}, { preserveState: true })}
                                 className={`px-3 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer ${
                                     link.active
-                                        ? 'bg-[#10B981] text-[#003824] font-bold shadow-xs'
-                                        : 'bg-white dark:bg-[#141822] text-slate-700 dark:text-[#BBCAFF] border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
+                                        ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                                        : 'bg-card text-muted-foreground border border-border hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed'
                                 }`}
                                 dangerouslySetInnerHTML={{ __html: link.label }}
                             />
                         ))}
                     </div>
                 )}
-            </main>
-        </div>
+            </div>
+        </DashboardLayout>
     );
 }

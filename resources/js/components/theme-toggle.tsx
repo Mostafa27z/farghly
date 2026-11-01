@@ -1,5 +1,5 @@
-import { useAppearance } from '@/hooks/use-appearance';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Moon, Sun } from 'lucide-react';
 
 interface Props {
     className?: string;
@@ -7,35 +7,49 @@ interface Props {
 }
 
 export default function ThemeToggle({ className = '', showLabel = false }: Props) {
-    const { appearance, updateAppearance } = useAppearance();
+    const [isDark, setIsDark] = useState<boolean>(false);
 
-    // Check effective dark state
-    const isDark =
-        appearance === 'dark' ||
-        (appearance === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    useEffect(() => {
+        const checkDark = () => {
+            const htmlHasDark = document.documentElement.classList.contains('dark');
+            setIsDark(htmlHasDark);
+        };
+        checkDark();
+
+        const handleSync = () => checkDark();
+        window.addEventListener('farghly_theme_change', handleSync);
+        return () => window.removeEventListener('farghly_theme_change', handleSync);
+    }, []);
 
     const toggleTheme = () => {
-        updateAppearance(isDark ? 'light' : 'dark');
+        const nextDark = !isDark;
+        setIsDark(nextDark);
+        if (nextDark) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('farghly_theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('farghly_theme', 'light');
+        }
+        window.dispatchEvent(new CustomEvent('farghly_theme_change', { detail: { isDark: nextDark } }));
     };
 
     return (
         <button
             type="button"
             onClick={toggleTheme}
-            aria-label={isDark ? 'التبديل إلى الوضع النهاري' : 'التبديل إلى الوضع الليلي'}
+            aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             title={isDark ? 'تفعيل الوضع النهاري (Light Mode)' : 'تفعيل الوضع الليلي (Dark Mode)'}
-            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full border transition-all cursor-pointer select-none text-xs font-mono ${
-                isDark
-                    ? 'bg-[#1C2028] border-white/10 text-[#BBCAFF] hover:text-white hover:border-[#10B981]/40 hover:bg-white/5'
-                    : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:border-emerald-500/50 hover:bg-slate-50 shadow-sm'
-            } ${className}`}
+            className={`size-9 rounded-xl border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all cursor-pointer shadow-xs select-none hover:border-primary/40 active:scale-95 ${className}`}
         >
-            <span className={`material-symbols-outlined text-base transition-transform ${isDark ? 'text-amber-400 rotate-0' : 'text-slate-700 -rotate-12'}`}>
-                {isDark ? 'light_mode' : 'dark_mode'}
-            </span>
+            {isDark ? (
+                <Sun size={17} className="text-amber-400 rotate-0 transition-transform duration-300 hover:rotate-45" />
+            ) : (
+                <Moon size={17} className="text-slate-600 dark:text-slate-300 -rotate-12 transition-transform duration-300 hover:rotate-0" />
+            )}
             {showLabel && (
-                <span className="font-sans font-medium">
-                    {isDark ? 'الوضع النهاري' : 'الوضع الليلي'}
+                <span className="ms-1.5 font-bold text-xs">
+                    {isDark ? 'ليلي' : 'نهاري'}
                 </span>
             )}
         </button>

@@ -1,34 +1,40 @@
 import { Appearance, useAppearance } from '@/hooks/use-appearance';
+import { useLanguage } from '@/hooks/use-language';
 import { cn } from '@/lib/utils';
 import { LucideIcon, Monitor, Moon, Sun } from 'lucide-react';
 import { HTMLAttributes } from 'react';
 
 export default function AppearanceToggleTab({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
     const { appearance, updateAppearance } = useAppearance();
+    const { isRtl } = useLanguage();
 
-    const tabs: { value: Appearance; icon: LucideIcon; label: string }[] = [
-        { value: 'light', icon: Sun, label: 'Light' },
-        { value: 'dark', icon: Moon, label: 'Dark' },
-        { value: 'system', icon: Monitor, label: 'System' },
+    const tabs: { value: Appearance; icon: LucideIcon; labelAr: string; labelEn: string }[] = [
+        { value: 'light', icon: Sun, labelAr: 'الوضع الفاتح', labelEn: 'Light' },
+        { value: 'dark', icon: Moon, labelAr: 'الوضع الليلي', labelEn: 'Dark' },
+        { value: 'system', icon: Monitor, labelAr: 'تلقائي حسب النظام', labelEn: 'System' },
     ];
 
     return (
-        <div className={cn('inline-flex gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800', className)} {...props}>
-            {tabs.map(({ value, icon: Icon, label }) => (
-                <button
-                    key={value}
-                    onClick={() => updateAppearance(value)}
-                    className={cn(
-                        'flex items-center rounded-md px-3.5 py-1.5 transition-colors',
-                        appearance === value
-                            ? 'bg-white shadow-xs dark:bg-neutral-700 dark:text-neutral-100'
-                            : 'text-neutral-500 hover:bg-neutral-200/60 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-700/60',
-                    )}
-                >
-                    <Icon className="-ml-1 h-4 w-4" />
-                    <span className="ml-1.5 text-sm">{label}</span>
-                </button>
-            ))}
+        <div className={cn('grid grid-cols-1 sm:grid-cols-3 gap-3 p-1.5 rounded-2xl bg-muted/40 border border-border/80', className)} {...props}>
+            {tabs.map(({ value, icon: Icon, labelAr, labelEn }) => {
+                const isSelected = appearance === value;
+                return (
+                    <button
+                        type="button"
+                        key={value}
+                        onClick={() => updateAppearance(value)}
+                        className={cn(
+                            'flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer',
+                            isSelected
+                                ? 'bg-card text-foreground shadow-sm border border-border/70 text-primary'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-card/50',
+                        )}
+                    >
+                        <Icon className={cn('size-4 shrink-0', isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                        <span>{isRtl ? labelAr : labelEn}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 }

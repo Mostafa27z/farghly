@@ -1,11 +1,14 @@
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
-
-import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
+import { Button } from '@/components/ui/button';
+import { FormInput } from '@/components/ui/form-input';
 import AuthLayout from '@/layouts/auth-layout';
+import { useLanguage } from '@/hooks/use-language';
+import { ArrowLeft, ArrowRight, Loader2, Mail, MailCheck } from 'lucide-react';
 
 export default function ForgotPassword({ status }: { status?: string }) {
+    const { isRtl } = useLanguage();
     const { data, setData, post, processing, errors } = useForm({
         email: '',
     });
@@ -17,59 +20,63 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
     return (
         <AuthLayout
-            title="استعادة كلمة المرور"
-            description="أدخل بريدك الإلكتروني المسجل وسنرسل لك رابطاً آمناً لإعادة تعيين كلمة المرور."
+            title={isRtl ? 'استعادة كلمة المرور' : 'Reset Password'}
+            description={
+                isRtl
+                    ? 'أدخل بريدك الإلكتروني المسجل وسنرسل لك رابطاً آمناً لإعادة تعيين كلمة المرور فوراً.'
+                    : 'Enter your registered email and we will send you a secure link to reset your password.'
+            }
+            badgeText={isRtl ? 'استعادة الحساب' : 'Account Recovery'}
         >
-            <Head title="استعادة كلمة المرور | فرغلي" />
+            <Head title={isRtl ? 'استعادة كلمة المرور | فرغلي' : 'Forgot Password | Farghly'} />
 
             {status && (
-                <div className="mb-4 text-center text-xs font-mono text-[#4EDEA3] bg-[#10B981]/10 p-3 rounded-xl border border-[#10B981]/30">
+                <div className="mb-5 text-center text-xs font-mono font-medium text-primary bg-primary/10 p-3.5 rounded-xl border border-primary/25">
                     {status}
                 </div>
             )}
 
-            <form onSubmit={submit} className="flex flex-col gap-5 text-right">
-                <div className="space-y-1.5">
-                    <label htmlFor="email" className="block text-xs font-bold text-slate-700 dark:text-[#DFE2EE]">
-                        البريد الإلكتروني <span className="text-emerald-600 dark:text-[#4EDEA3] font-mono text-[11px]">/ Email</span>
-                    </label>
-                    <input
-                        id="email"
-                        type="email"
-                        name="email"
-                        required
-                        autoComplete="email"
-                        value={data.email}
-                        autoFocus
-                        onChange={(e) => setData('email', e.target.value)}
-                        placeholder="name@company.com"
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0F131C] border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white font-mono text-sm placeholder:text-slate-400 dark:placeholder:text-white/30 focus:border-[#10B981] focus:ring-1 focus:ring-[#10B981] outline-none transition-all"
-                    />
-                    <InputError message={errors.email} />
-                </div>
-
-                <button
-                    type="submit"
-                    className="w-full py-3 rounded-xl bg-[#10B981] hover:bg-[#34D399] text-[#003824] font-bold text-sm shadow-[0_0_24px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            <form onSubmit={submit} className="flex flex-col gap-5 text-start">
+                <FormInput
+                    id="email"
+                    type="email"
+                    name="email"
+                    label={isRtl ? 'البريد الإلكتروني' : 'Email Address'}
+                    icon={Mail}
+                    required
+                    autoComplete="email"
+                    value={data.email}
+                    autoFocus
+                    onChange={(e) => setData('email', e.target.value)}
+                    placeholder="name@company.com"
+                    error={errors.email}
                     disabled={processing}
+                />
+
+                <Button
+                    type="submit"
+                    size="lg"
+                    disabled={processing}
+                    className="w-full mt-1 shadow-lg shadow-primary/25"
                 >
                     {processing ? (
                         <>
-                            <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                            <span>جاري إرسال الرابط...</span>
+                            <Loader2 className="size-4 animate-spin" />
+                            <span>{isRtl ? 'جاري إرسال الرابط...' : 'Sending link...'}</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-outlined text-lg">mark_email_read</span>
-                            <span>إرسال رابط استعادة المرور</span>
+                            <MailCheck className="size-4" />
+                            <span>{isRtl ? 'إرسال رابط استعادة المرور' : 'Send Reset Link'}</span>
                         </>
                     )}
-                </button>
+                </Button>
 
-                <div className="pt-4 border-t border-slate-200 dark:border-white/10 text-center text-xs text-slate-600 dark:text-[#BBCAFF]">
-                    <span>تذكرت كلمة المرور؟ </span>
-                    <TextLink href={route('login')} className="text-emerald-600 dark:text-[#4EDEA3] font-bold hover:underline">
-                        العودة لتسجيل الدخول
+                <div className="pt-4 border-t border-border text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+                    <span>{isRtl ? 'تذكرت كلمة المرور؟ ' : 'Remember your password? '}</span>
+                    <TextLink href={route('login')} className="text-primary font-bold hover:underline inline-flex items-center gap-1">
+                        <span>{isRtl ? 'العودة لتسجيل الدخول' : 'Back to sign in'}</span>
+                        {isRtl ? <ArrowLeft className="size-3.5" /> : <ArrowRight className="size-3.5" />}
                     </TextLink>
                 </div>
             </form>
