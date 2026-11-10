@@ -84,8 +84,16 @@ class TranscriptController extends Controller
 
         $durationSeconds = $result['duration_seconds'] ?? 0;
 
-        // Verify quota (counted by number of videos)
+        // Verify quota (counted by number of videos and minutes limit)
         if (!$tenant->canTranscribe($durationSeconds)) {
+            $videoMinutes = (int) ceil($durationSeconds / 60);
+            $remMinutes = $tenant->remainingActualMinutes();
+            if ($tenant->remainingVideos() >= 1 && $remMinutes < $videoMinutes) {
+                return back()->withErrors([
+                    'url' => "عذراً، مدة هذا الفيديو ({$videoMinutes} دقيقة) تتجاوز رصيد الدقائق المتبقي في باقتك ({$remMinutes} دقيقة).",
+                ]);
+            }
+
             return back()->withErrors([
                 'url' => 'عذراً، رصيدك من الفيديوهات الشهرية غير كافٍ لتفريغ هذا الفيديو. المتبقي: ' . $tenant->remainingVideos() . ' فيديو.',
             ]);

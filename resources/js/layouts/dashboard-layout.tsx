@@ -115,15 +115,22 @@ export default function DashboardLayout({
                       groupAr: 'بوابة الإدارة والمبيعات',
                       groupEn: 'ADMIN & SALES',
                       items: [
-                          {
-                              titleAr: 'لوحة تحكم الإدارة',
-                              titleEn: 'Admin Overview',
-                              href: route('admin.dashboard'),
-                              icon: ShieldCheck,
-                              active: isCurrent('admin.dashboard'),
-                          },
                           ...(auth?.is_super_admin
                               ? [
+                                    {
+                                        titleAr: 'لوحة تحكم الإدارة',
+                                        titleEn: 'Admin Overview',
+                                        href: route('admin.dashboard'),
+                                        icon: ShieldCheck,
+                                        active: isCurrent('admin.dashboard'),
+                                    },
+                                    {
+                                        titleAr: 'إدارة العملاء والاشتراكات',
+                                        titleEn: 'Clients & Renewals',
+                                        href: route('sales.index'),
+                                        icon: UserCheck,
+                                        active: isCurrent('sales.*'),
+                                    },
                                     {
                                         titleAr: 'فريق المبيعات',
                                         titleEn: 'Sales Team',
@@ -148,8 +155,8 @@ export default function DashboardLayout({
                                 ]
                               : [
                                     {
-                                        titleAr: 'إدارة العملاء والاشتراكات',
-                                        titleEn: 'Clients & Renewals',
+                                        titleAr: 'إدارة عملائي والاشتراكات',
+                                        titleEn: 'My Clients & Renewals',
                                         href: route('sales.index'),
                                         icon: UserCheck,
                                         active: isCurrent('sales.*'),

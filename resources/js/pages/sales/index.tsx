@@ -186,11 +186,11 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                             <ShieldCheck className="size-4.5" />
                             <span>
                                 <strong className="text-foreground">{isRtl ? 'نطاق حساب المبيعات: ' : 'Sales Scope: '}</strong>
-                                {isRtl ? 'هذا الحساب مخصص لإدارة اشتراكات العملاء وتجديد التراخيص ومتابعة التحصيل المالي.' : 'Designated for onboarding clients, handling renewals, and managing quotas.'}
+                                {isRtl ? 'يظهر لك هنا العملاء المسجلون باسمك فقط لإدارة اشتراكاتهم، تجديد التراخيص، ومتابعة التحصيل المالي.' : 'You can view and manage only the clients registered under your account.'}
                             </span>
                         </div>
                         <span className="self-start sm:self-auto px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary font-mono font-bold text-[11px] whitespace-nowrap">
-                            {isRtl ? 'إدارة الاشتراكات والمالية' : 'Subscriptions & Billing'}
+                            {isRtl ? 'عملائي واشتراكاتهم' : 'My Clients Only'}
                         </span>
                     </div>
                 )}
@@ -384,7 +384,7 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                                 </td>
 
                                                 <td className="py-4 px-4">
-                                                    <div className="flex items-center justify-between text-[11px] mb-1 font-mono">
+                                                    <div className="flex items-center justify-between text-[11px] mb-1 font-mono gap-2">
                                                         <span className="text-foreground font-bold">{videoUsed} فيديو</span>
                                                         <span className="text-muted-foreground">/ {videoLimit} فيديو</span>
                                                     </div>
@@ -393,6 +393,9 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                                              className={`h-full rounded-full ${usagePercent > 80 ? 'bg-red-500' : 'bg-primary'}`}
                                                             style={{ width: `${usagePercent}%` }}
                                                         />
+                                                    </div>
+                                                    <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                                                        إجمالي المفرغ: <strong className="text-foreground">{client.transcripts_count}</strong> فيديو
                                                     </div>
                                                 </td>
 
@@ -416,6 +419,32 @@ export default function SalesIndex({ clients, filters, myMetrics, availablePlans
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Pagination Footer */}
+                    <div className="px-4 py-3 bg-muted/30 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                            الصفحة <strong className="text-foreground font-mono">{clients.current_page}</strong> من{' '}
+                            <strong className="text-foreground font-mono">{clients.last_page}</strong> — إجمالي العملاء:{' '}
+                            <strong className="text-foreground font-mono">{clients.total}</strong>
+                        </span>
+
+                        <div className="flex items-center flex-wrap justify-center gap-1.5">
+                            {clients.links.map((link, idx) => (
+                                <button
+                                    key={idx}
+                                    type="button"
+                                    disabled={!link.url}
+                                    onClick={() => link.url && router.get(link.url, {}, { preserveState: true, preserveScroll: true })}
+                                    className={`px-3 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                                        link.active
+                                            ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                                            : 'bg-card text-muted-foreground border border-border hover:bg-muted disabled:opacity-35 disabled:cursor-not-allowed'
+                                    }`}
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

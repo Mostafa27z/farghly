@@ -64,7 +64,17 @@ class Tenant extends Model
     }
 
     /**
-     * Verify whether tenant has sufficient video balance to transcribe.
+     * Compute remaining transcription minutes for the current billing cycle.
+     */
+    public function remainingActualMinutes(): int
+    {
+        $limit = $this->monthly_minutes_limit ?: (($this->monthly_videos_limit ?: 150) * 20);
+        $used = $this->monthly_minutes_used ?? 0;
+        return max(0, $limit - $used);
+    }
+
+    /**
+     * Verify whether tenant has sufficient video and minute balance to transcribe.
      */
     public function canTranscribe(?int $videoDurationSeconds = null): bool
     {
@@ -72,7 +82,16 @@ class Tenant extends Model
             return false;
         }
 
-        return $this->remainingVideos() >= 1;
+        if ($this->remainingVideos() < 1) {
+            return false;
+        }
+
+        if ($videoDurationSeconds !== null && $this->monthly_minutes_limit > 0) {
+            $videoMinutes = (int) ceil($videoDurationSeconds / 60);
+            return $this->remainingActualMinutes() >= $videoMinutes;
+        }
+
+        return true;
     }
 
     /**

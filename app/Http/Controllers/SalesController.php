@@ -31,6 +31,11 @@ class SalesController extends Controller
         ->withCount(['transcripts', 'users'])
         ->latest('created_at');
 
+        // Restrict sales agents to view and manage only their own clients
+        if (!$salesUser->isSuperAdmin()) {
+            $query->where('created_by_sales_id', $salesUser->id);
+        }
+
         // Search
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -53,7 +58,7 @@ class SalesController extends Controller
             default => null,
         };
 
-        $clients = $query->paginate(15)->through(function ($tenant) {
+        $clients = $query->paginate(10)->through(function ($tenant) {
             $owner = $tenant->users()->wherePivot('role', 'owner')->first() ?? $tenant->users()->first();
 
             $daysLeft = null;
@@ -177,6 +182,11 @@ class SalesController extends Controller
      */
     public function renew(Request $request, Tenant $tenant)
     {
+        $salesUser = $request->user();
+        if (!$salesUser->isSuperAdmin() && (int) $tenant->created_by_sales_id !== (int) $salesUser->id) {
+            abort(403, 'غير مصرح لك بإدارة أو تجديد اشتراك عميل غير مسجل باسمك.');
+        }
+
         $request->validate([
             'duration_days' => 'required|integer|in:30,90,180,365',
             'plan_name' => 'nullable|string|max:80',

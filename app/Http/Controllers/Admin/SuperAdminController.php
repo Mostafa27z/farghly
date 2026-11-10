@@ -20,9 +20,76 @@ class SuperAdminController extends Controller
     /**
      * Super Admin Overview Dashboard.
      */
-    public function dashboard(): Response
+    public function dashboard(Request $request): Response
     {
         $overview = $this->subscriptionService->getSystemOverviewMetrics();
+        $filter = $request->input('filter', 'all'); // all, active, expiring_soon, expired
+        $search = $request->input('search');
+
+        // Paginated clients with usage stats
+        $clientsQuery = Tenant::whereDoesntHave('users', function ($uq) {
+            $uq->where('system_role', 'super_admin');
+        })
+            ->with(['salesAgent'])
+            ->withCount(['transcripts', 'users'])
+            ->latest('created_at');
+
+        if ($search) {
+            $clientsQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('plan_name', 'like', "%{$search}%")
+                    ->orWhereHas('users', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        match ($filter) {
+            'active' => $clientsQuery->where('subscription_status', 'active')
+                ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())),
+            'expiring_soon' => $clientsQuery->where('subscription_status', 'active')
+                ->whereBetween('expires_at', [now(), now()->addDays(7)]),
+            'expired' => $clientsQuery->where(fn($q) => $q->where('subscription_status', 'expired')->orWhere('expires_at', '<=', now())),
+            default => null,
+        };
+
+        $clients = $clientsQuery->paginate(10)->through(function ($tenant) {
+            $owner = $tenant->users()->wherePivot('role', 'owner')->first() ?? $tenant->users()->first();
+
+            $daysLeft = null;
+            $isExpired = false;
+            if ($tenant->expires_at) {
+                $daysLeft = \Carbon\Carbon::now()->diffInDays($tenant->expires_at, false);
+                $isExpired = $daysLeft < 0;
+            }
+
+            return [
+                'id' => $tenant->id,
+                'name' => $tenant->name,
+                'plan_name' => $tenant->plan_name,
+                'subscription_status' => $isExpired ? 'expired' : $tenant->subscription_status,
+                'expires_at' => $tenant->expires_at?->format('Y-m-d'),
+                'expires_at_human' => $tenant->expires_at?->diffForHumans(),
+                'days_left' => $daysLeft !== null ? (int) $daysLeft : null,
+                'monthly_videos_limit' => $tenant->monthly_videos_limit ?: max(10, (int) round(($tenant->monthly_minutes_limit ?? 3000) / 20)),
+                'monthly_videos_used' => $tenant->monthly_videos_used ?? 0,
+                'remaining_videos' => $tenant->remainingVideos(),
+                'monthly_minutes_limit' => $tenant->monthly_minutes_limit,
+                'monthly_minutes_used' => $tenant->monthly_minutes_used ?? 0,
+                'remaining_minutes' => $tenant->remainingVideos(),
+                'transcripts_count' => $tenant->transcripts_count,
+                'owner' => $owner ? [
+                    'id' => $owner->id,
+                    'name' => $owner->name,
+                    'email' => $owner->email,
+                ] : null,
+                'sales_agent' => $tenant->salesAgent ? [
+                    'id' => $tenant->salesAgent->id,
+                    'name' => $tenant->salesAgent->name,
+                ] : null,
+            ];
+        })->withQueryString();
 
         // Recent 8 transactions across all sales reps
         $recentTransactions = SubscriptionTransaction::with(['salesAgent', 'tenant'])
@@ -56,6 +123,11 @@ class SuperAdminController extends Controller
 
         return Inertia::render('admin/dashboard', [
             'metrics' => $overview,
+            'clients' => $clients,
+            'filters' => [
+                'filter' => $filter,
+                'search' => $search,
+            ],
             'recentTransactions' => $recentTransactions,
             'topPerformers' => $leaderboard->take(4)->values(),
         ]);
