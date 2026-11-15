@@ -116,6 +116,32 @@ class Tenant extends Model
     }
 
     /**
+     * Maximum number of flashcards per video based on subscription plan.
+     */
+    public function maxFlashcardsPerVideo(): int
+    {
+        $plan = strtolower(trim($this->plan_name ?? ''));
+
+        if (str_contains($plan, 'enterprise')) {
+            return 100;
+        }
+
+        if (str_contains($plan, 'agency')) {
+            return 50;
+        }
+
+        if (str_contains($plan, 'creator') || str_contains($plan, 'pro')) {
+            return 25;
+        }
+
+        if (str_contains($plan, 'starter')) {
+            return 10;
+        }
+
+        return 15;
+    }
+
+    /**
      * Users associated with this workspace.
      */
     public function users(): BelongsToMany
@@ -155,5 +181,21 @@ class Tenant extends Model
     public function subscriptionTransactions(): HasMany
     {
         return $this->hasMany(SubscriptionTransaction::class);
+    }
+
+    /**
+     * Quizzes created within this workspace.
+     */
+    public function quizzes(): HasMany
+    {
+        return $this->hasMany(Quiz::class);
+    }
+
+    /**
+     * Flashcard sets created within this workspace.
+     */
+    public function flashcardSets(): HasMany
+    {
+        return $this->hasMany(FlashcardSet::class);
     }
 }

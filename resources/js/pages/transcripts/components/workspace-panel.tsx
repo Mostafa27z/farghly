@@ -1,8 +1,9 @@
-import { Check, Copy, FileText, Printer } from 'lucide-react';
-import { Captions, SpellCheck, Sparkles } from 'lucide-react';
+import { Captions, Check, Copy, FileText, GraduationCap, Layers, Printer, Sparkles, SpellCheck } from 'lucide-react';
 import React from 'react';
 import { useLanguage } from '@/hooks/use-language';
+import FlashcardsTab, { FlashcardSetData } from './flashcards-tab';
 import ProofreadTab from './proofread-tab';
+import QuizTab, { QuizData } from './quiz-tab';
 import SummaryTab from './summary-tab';
 import TranscriptTab from './transcript-tab';
 
@@ -34,8 +35,8 @@ interface TranscriptData {
 
 interface WorkspacePanelProps {
     transcript: TranscriptData;
-    activeTab: 'transcript' | 'proofread' | 'summary';
-    setActiveTab: (tab: 'transcript' | 'proofread' | 'summary') => void;
+    activeTab: 'transcript' | 'proofread' | 'summary' | 'quiz' | 'flashcards';
+    setActiveTab: (tab: 'transcript' | 'proofread' | 'summary' | 'quiz' | 'flashcards') => void;
     searchTerm: string;
     setSearchTerm: (v: string) => void;
     filteredSegments: Segment[];
@@ -53,6 +54,12 @@ interface WorkspacePanelProps {
     onCopyProofread: () => void;
     onOpenSummaryModal: () => void;
     onOpenProofreadModal: () => void;
+    onOpenQuizModal: () => void;
+    onOpenFlashcardsModal: () => void;
+    quiz?: QuizData | null;
+    flashcardSet?: FlashcardSetData | null;
+    maxCards: number;
+    planName: string;
     formatDuration: (seconds: number) => string;
 }
 
@@ -77,6 +84,12 @@ export default function WorkspacePanel({
     onCopyProofread,
     onOpenSummaryModal,
     onOpenProofreadModal,
+    onOpenQuizModal,
+    onOpenFlashcardsModal,
+    quiz,
+    flashcardSet,
+    maxCards,
+    planName,
     formatDuration,
 }: WorkspacePanelProps) {
     const { isRtl } = useLanguage();
@@ -129,6 +142,38 @@ export default function WorkspacePanel({
                         <Sparkles size={16} />
                         <span>{isRtl ? 'الملخص الذكي (AI)' : 'Smart Summary'}</span>
                         {transcript.summary_html && (
+                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('quiz')}
+                        className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                            activeTab === 'quiz'
+                                ? 'bg-card text-primary shadow-xs font-extrabold border border-border/60'
+                                : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                        <GraduationCap size={16} />
+                        <span>{isRtl ? 'الاختبار الذكي' : 'Quiz & Grading'}</span>
+                        {quiz && (
+                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('flashcards')}
+                        className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                            activeTab === 'flashcards'
+                                ? 'bg-card text-primary shadow-xs font-extrabold border border-border/60'
+                                : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                    >
+                        <Layers size={16} />
+                        <span>{isRtl ? 'البطاقات التعليمية' : 'Flashcards'}</span>
+                        {flashcardSet && (
                             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                         )}
                     </button>
@@ -252,6 +297,22 @@ export default function WorkspacePanel({
                     summaryPresets={summaryPresets}
                     formatDuration={formatDuration}
                     onOpenSummaryModal={onOpenSummaryModal}
+                />
+            )}
+
+            {activeTab === 'quiz' && (
+                <QuizTab
+                    quiz={quiz}
+                    onOpenQuizModal={onOpenQuizModal}
+                />
+            )}
+
+            {activeTab === 'flashcards' && (
+                <FlashcardsTab
+                    flashcardSet={flashcardSet}
+                    onOpenFlashcardsModal={onOpenFlashcardsModal}
+                    maxCards={maxCards}
+                    planName={planName}
                 />
             )}
         </div>

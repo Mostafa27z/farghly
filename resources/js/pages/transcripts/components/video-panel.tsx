@@ -44,7 +44,7 @@ interface VideoPanelProps {
     iframeRef: React.RefObject<HTMLIFrameElement | null>;
     formatDuration: (seconds: number) => string;
     docTheme?: string;
-    activeTab?: 'transcript' | 'proofread' | 'summary';
+    activeTab?: 'transcript' | 'proofread' | 'summary' | 'quiz' | 'flashcards';
 }
 
 export default function VideoPanel({

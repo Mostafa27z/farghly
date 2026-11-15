@@ -57,6 +57,22 @@ class Transcript extends Model
     }
 
     /**
+     * Quizzes generated for this transcript.
+     */
+    public function quizzes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Quiz::class)->latest();
+    }
+
+    /**
+     * Flashcard sets generated for this transcript.
+     */
+    public function flashcardSets(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(FlashcardSet::class)->latest();
+    }
+
+    /**
      * Generate standard SubRip Subtitle (.SRT) format.
      */
     public function toSrt(): string

@@ -1,13 +1,19 @@
 import DashboardLayout from '@/layouts/dashboard-layout';
 import { useLanguage } from '@/hooks/use-language';
+import FlashcardsModal from '@/pages/transcripts/components/flashcards-modal';
 import ProofreadModal from '@/pages/transcripts/components/proofread-modal';
+import QuizModal from '@/pages/transcripts/components/quiz-modal';
 import SummaryModal from '@/pages/transcripts/components/summary-modal';
 import VideoPanel from '@/pages/transcripts/components/video-panel';
 import WorkspacePanel from '@/pages/transcripts/components/workspace-panel';
+import { FlashcardSetData } from '@/pages/transcripts/components/flashcards-tab';
+import { QuizData } from '@/pages/transcripts/components/quiz-tab';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
+    GraduationCap,
+    Layers,
     Palette,
     Printer,
     Sparkles,
@@ -60,15 +66,25 @@ interface Props {
         name: string;
         plan_name: string;
         remaining_minutes: number;
+        max_flashcards: number;
     };
     themes?: ThemeOption[];
     systemPresets?: Record<string, any>;
+    quiz?: QuizData | null;
+    flashcardSet?: FlashcardSetData | null;
 }
 
-export default function TranscriptShow({ transcript, tenant, themes = [], systemPresets = {} }: Props) {
+export default function TranscriptShow({
+    transcript,
+    tenant,
+    themes = [],
+    systemPresets = {},
+    quiz = null,
+    flashcardSet = null,
+}: Props) {
     const { lang, setLang, isRtl } = useLanguage();
-    const [activeTab, setActiveTab] = useState<'transcript' | 'proofread' | 'summary'>(
-        transcript.proofread_html ? 'proofread' : (transcript.summary_html ? 'summary' : 'transcript')
+    const [activeTab, setActiveTab] = useState<'transcript' | 'proofread' | 'summary' | 'quiz' | 'flashcards'>(
+        quiz ? 'quiz' : (flashcardSet ? 'flashcards' : (transcript.proofread_html ? 'proofread' : (transcript.summary_html ? 'summary' : 'transcript')))
     );
     const [searchTerm, setSearchTerm] = useState('');
     const [copied, setCopied] = useState(false);
@@ -77,6 +93,8 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
     const [activeTimestamp, setActiveTimestamp] = useState<number | null>(null);
     const [showSummaryModal, setShowSummaryModal] = useState(false);
     const [showProofreadModal, setShowProofreadModal] = useState(false);
+    const [showQuizModal, setShowQuizModal] = useState(false);
+    const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
 
     const initialThemeId = themes.find(t => t.is_default)?.id || 'obsidian';
     const [docTheme, setDocTheme] = useState<string>(initialThemeId);
@@ -107,8 +125,35 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
         prompt: '',
     });
 
+    const {
+        data: quizFormData,
+        setData: setQuizFormData,
+        post: postQuiz,
+        processing: generatingQuiz,
+        errors: quizErrors,
+    } = useForm({
+        exam_type: 'both' as 'mcq' | 'written' | 'both',
+        difficulty: 'medium' as 'easy' | 'medium' | 'hard',
+        mcq_count: 8,
+        written_count: 3,
+        prompt: '',
+    });
+
+    const {
+        data: flashcardsFormData,
+        setData: setFlashcardsFormData,
+        post: postFlashcards,
+        processing: generatingFlashcards,
+        errors: flashcardsErrors,
+    } = useForm({
+        count: Math.min(15, tenant.max_flashcards || 15),
+        prompt: '',
+    });
+
     const proofreadError = pageProps.errors?.proofread || (proofreadErrors as Record<string, string | undefined>).proofread;
     const summaryError = pageProps.errors?.summary || (summaryErrors as Record<string, string | undefined>).summary;
+    const quizError = pageProps.errors?.quiz || (quizErrors as Record<string, string | undefined>).quiz;
+    const flashcardsError = pageProps.errors?.flashcards || (flashcardsErrors as Record<string, string | undefined>).flashcards;
 
     const segments = transcript.segments || [];
     const filteredSegments = segments.filter((seg) =>
@@ -152,6 +197,26 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
             onSuccess: () => {
                 setShowProofreadModal(false);
                 setActiveTab('proofread');
+            },
+        });
+    };
+
+    const handleGenerateQuiz = (e: React.FormEvent) => {
+        e.preventDefault();
+        postQuiz(route('transcripts.quizzes.store', transcript.id), {
+            onSuccess: () => {
+                setShowQuizModal(false);
+                setActiveTab('quiz');
+            },
+        });
+    };
+
+    const handleGenerateFlashcards = (e: React.FormEvent) => {
+        e.preventDefault();
+        postFlashcards(route('transcripts.flashcards.store', transcript.id), {
+            onSuccess: () => {
+                setShowFlashcardsModal(false);
+                setActiveTab('flashcards');
             },
         });
     };
@@ -249,6 +314,53 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                 </span>
             </button>
 
+            {/* AI Quiz Button */}
+            <button
+                type="button"
+                onClick={() => {
+                    if (quiz) {
+                        setActiveTab('quiz');
+                    } else {
+                        setShowQuizModal(true);
+                    }
+                }}
+                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    quiz
+                        ? 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/30 text-purple-700 dark:text-purple-300'
+                        : 'bg-muted/70 hover:bg-muted border-border text-foreground'
+                }`}
+                title={quiz ? 'عرض وتصحيح الاختبار' : 'إنشاء اختبار ذكي'}
+            >
+                <GraduationCap className="size-3.5" />
+                <span className="hidden sm:inline">
+                    {quiz ? (isRtl ? 'الاختبار الذكي' : 'Quiz') : (isRtl ? 'اختبار (AI)' : 'AI Quiz')}
+                </span>
+                <span className="sm:hidden text-[11px]">
+                    {isRtl ? 'اختبار' : 'Quiz'}
+                </span>
+            </button>
+
+            {/* AI Flashcards Button */}
+            <button
+                type="button"
+                onClick={() => {
+                    if (flashcardSet) {
+                        setActiveTab('flashcards');
+                    } else {
+                        setShowFlashcardsModal(true);
+                    }
+                }}
+                className={`hidden md:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    flashcardSet
+                        ? 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                        : 'bg-muted/70 hover:bg-muted border-border text-foreground'
+                }`}
+                title={flashcardSet ? 'عرض البطاقات التعليمية' : 'توليد بطاقات تعليمية'}
+            >
+                <Layers className="size-3.5" />
+                <span>{flashcardSet ? (isRtl ? 'البطاقات' : 'Cards') : (isRtl ? 'بطاقات' : 'Flashcards')}</span>
+            </button>
+
             {/* View / Print PDF direct link if available */}
             {(transcript.summary_html || transcript.proofread_html) && (
                 <a
@@ -309,6 +421,12 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                     onCopyProofread={copyProofread}
                     onOpenSummaryModal={() => setShowSummaryModal(true)}
                     onOpenProofreadModal={() => setShowProofreadModal(true)}
+                    onOpenQuizModal={() => setShowQuizModal(true)}
+                    onOpenFlashcardsModal={() => setShowFlashcardsModal(true)}
+                    quiz={quiz}
+                    flashcardSet={flashcardSet}
+                    maxCards={tenant.max_flashcards || 15}
+                    planName={tenant.plan_name}
                     formatDuration={formatDuration}
                 />
             </div>
@@ -339,6 +457,28 @@ export default function TranscriptShow({ transcript, tenant, themes = [], system
                 proofreading={proofreading}
                 allAvailableThemes={allAvailableThemes}
                 error={proofreadError}
+            />
+
+            <QuizModal
+                isOpen={showQuizModal}
+                onClose={() => setShowQuizModal(false)}
+                onSubmit={handleGenerateQuiz}
+                data={quizFormData}
+                setData={(key, val) => setQuizFormData(key as any, val)}
+                generating={generatingQuiz}
+                error={quizError}
+            />
+
+            <FlashcardsModal
+                isOpen={showFlashcardsModal}
+                onClose={() => setShowFlashcardsModal(false)}
+                onSubmit={handleGenerateFlashcards}
+                data={flashcardsFormData}
+                setData={(key, val) => setFlashcardsFormData(key as any, val)}
+                maxCards={tenant.max_flashcards || 15}
+                planName={tenant.plan_name}
+                generating={generatingFlashcards}
+                error={flashcardsError}
             />
         </DashboardLayout>
     );

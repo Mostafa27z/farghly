@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 use App\Http\Controllers\DocumentThemeController;
+use App\Http\Controllers\FlashcardController;
+use App\Http\Controllers\QuizController;
 use App\Http\Controllers\TranscriptController;
 
 Route::get('/', function () {
@@ -31,6 +33,15 @@ Route::middleware(['auth', 'tenant.active'])->group(function () {
     Route::post('/transcripts/{transcript}/summarize', [TranscriptController::class, 'summarize'])->name('transcripts.summarize');
     Route::post('/transcripts/{transcript}/proofread', [TranscriptController::class, 'proofread'])->name('transcripts.proofread');
     Route::get('/transcripts/{transcript}/document', [TranscriptController::class, 'document'])->name('transcripts.document');
+
+    // AI Quiz & Exam Grading routes
+    Route::post('/transcripts/{transcript}/quizzes', [QuizController::class, 'store'])->name('transcripts.quizzes.store');
+    Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submitAttempt'])->name('quizzes.submit');
+    Route::delete('/quizzes/{quiz}', [QuizController::class, 'destroy'])->name('quizzes.destroy');
+
+    // AI Flashcards routes
+    Route::post('/transcripts/{transcript}/flashcards', [FlashcardController::class, 'store'])->name('transcripts.flashcards.store');
+    Route::delete('/flashcards/{flashcardSet}', [FlashcardController::class, 'destroy'])->name('flashcards.destroy');
 
     // Document Themes & Branding routes
     Route::get('/themes', [DocumentThemeController::class, 'index'])->name('themes.index');

@@ -145,6 +145,42 @@ class TranscriptController extends Controller
                 ];
             });
 
+        $latestQuiz = $transcript->quizzes()->with('questions')->first();
+        $quizData = null;
+        if ($latestQuiz) {
+            $userId = $request->user()->id;
+            $fullAttemptsUsed = $latestQuiz->fullAttemptsCountForUser($userId);
+            $remainingFull = $latestQuiz->remainingFullAttemptsForUser($userId);
+
+            $quizData = [
+                'id' => $latestQuiz->id,
+                'title' => $latestQuiz->title,
+                'exam_type' => $latestQuiz->exam_type,
+                'difficulty' => $latestQuiz->difficulty,
+                'mcq_count' => $latestQuiz->mcq_count,
+                'written_count' => $latestQuiz->written_count,
+                'max_full_attempts' => $latestQuiz->max_full_attempts,
+                'full_attempts_used' => $fullAttemptsUsed,
+                'remaining_full_attempts' => $remainingFull,
+                'can_take_full_exam' => $remainingFull > 0,
+                'can_retake_mcq_only' => $latestQuiz->canRetakeMcqOnly(),
+                'questions' => $latestQuiz->questions->map(function ($q) {
+                    return [
+                        'id' => $q->id,
+                        'sort_order' => $q->sort_order,
+                        'type' => $q->type,
+                        'question_text' => $q->question_text,
+                        'options' => $q->options,
+                        'points' => $q->points,
+                    ];
+                }),
+                'attempts' => $latestQuiz->attempts()->where('user_id', $userId)->get(),
+                'created_at' => $latestQuiz->created_at?->toIso8601String(),
+            ];
+        }
+
+        $flashcardSet = $transcript->flashcardSets()->first();
+
         return Inertia::render('transcripts/show', [
             'transcript' => $transcript,
             'tenant' => [
@@ -154,9 +190,12 @@ class TranscriptController extends Controller
                 'monthly_videos_used' => $tenant->monthly_videos_used ?? 0,
                 'remaining_videos' => $tenant->remainingVideos(),
                 'remaining_minutes' => $tenant->remainingVideos(),
+                'max_flashcards' => $tenant->maxFlashcardsPerVideo(),
             ],
             'themes' => $themes,
             'systemPresets' => DocumentThemeService::SYSTEM_PRESETS,
+            'quiz' => $quizData,
+            'flashcardSet' => $flashcardSet,
         ]);
     }
 
