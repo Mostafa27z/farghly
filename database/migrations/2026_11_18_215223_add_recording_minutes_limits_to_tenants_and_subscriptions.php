@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tenants', function (Blueprint $table) {
-            $table->unsignedInteger('monthly_recording_minutes_limit')->default(300)->after('monthly_minutes_used');
+            $table->unsignedInteger('monthly_recording_minutes_limit')->default(0)->after('monthly_minutes_used');
             $table->unsignedInteger('monthly_recording_minutes_used')->default(0)->after('monthly_recording_minutes_limit');
         });
 
