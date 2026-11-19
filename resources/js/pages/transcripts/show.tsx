@@ -31,11 +31,14 @@ interface Segment {
 
 interface TranscriptData {
     id: string;
-    youtube_id: string;
-    video_url: string;
+    source_type?: 'youtube' | 'file';
+    media_url?: string | null;
+    original_filename?: string | null;
+    youtube_id?: string | null;
+    video_url?: string | null;
     title: string;
     channel_name: string;
-    thumbnail_url: string;
+    thumbnail_url?: string | null;
     duration_seconds: number;
     language: string;
     segments: Segment[];
@@ -162,7 +165,13 @@ export default function TranscriptShow({
 
     const seekTo = (seconds: number) => {
         setActiveTimestamp(seconds);
-        if (iframeRef.current) {
+        if (transcript.source_type === 'file' || !transcript.youtube_id) {
+            const audioElement = document.getElementById('farghly-audio-player') as HTMLAudioElement;
+            if (audioElement) {
+                audioElement.currentTime = seconds;
+                audioElement.play().catch(() => {});
+            }
+        } else if (iframeRef.current) {
             iframeRef.current.src = `https://www.youtube.com/embed/${transcript.youtube_id}?autoplay=1&start=${Math.floor(seconds)}`;
         }
     };

@@ -5,14 +5,17 @@ import {
     Clock,
     Copy,
     Download,
+    FileAudio,
     FileCode,
     FileSpreadsheet,
     FileText,
     Globe,
     Layers,
+    Music,
     Printer,
     Sparkles,
     SpellCheck,
+    Volume2,
 } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -26,7 +29,10 @@ interface Segment {
 
 interface TranscriptData {
     id: string;
-    youtube_id: string;
+    source_type?: 'youtube' | 'file';
+    media_url?: string | null;
+    original_filename?: string | null;
+    youtube_id?: string | null;
     title: string;
     channel_name: string;
     duration_seconds: number;
@@ -66,17 +72,62 @@ export default function VideoPanel({
 
     return (
         <div className="w-full lg:w-5/12 flex flex-col gap-5 shrink-0">
-            {/* Embedded YouTube Player */}
-            <div className="rounded-3xl overflow-hidden bg-black border border-border/80 shadow-xl aspect-video static lg:sticky lg:top-24">
-                <iframe
-                    ref={iframeRef}
-                    src={`https://www.youtube.com/embed/${transcript.youtube_id}`}
-                    title={transcript.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full border-0"
-                />
-            </div>
+            {/* Embedded Media Player (YouTube or Custom Audio Player) */}
+            {transcript.source_type === 'file' || !transcript.youtube_id ? (
+                <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-card to-muted/50 border border-border/80 shadow-xl p-6 static lg:sticky lg:top-24 space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                            <Music className="size-6 animate-pulse" />
+                        </div>
+                        <div className="space-y-0.5 overflow-hidden">
+                            <h4 className="text-sm font-extrabold text-foreground truncate">
+                                {transcript.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground truncate font-mono">
+                                {transcript.original_filename || (isRtl ? 'ملف صوتي مرفوع' : 'Uploaded Audio File')}
+                            </p>
+                        </div>
+                    </div>
+
+                    {transcript.media_url ? (
+                        <div className="space-y-2 pt-1">
+                            <audio
+                                id="farghly-audio-player"
+                                src={transcript.media_url}
+                                controls
+                                className="w-full h-11 rounded-xl bg-background"
+                            />
+                            <p className="text-[11px] text-muted-foreground text-center">
+                                {isRtl
+                                    ? 'انقر على أي توقيت زمني في النص أدناه للانتقال إليه مباشرة'
+                                    : 'Click any timestamp in the transcript below to jump to it'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="p-4 rounded-2xl bg-muted/40 border border-border/70 text-center space-y-1">
+                            <span className="text-xs font-bold text-foreground block">
+                                {isRtl ? 'تمت أرشفة التسجيل الصوتي لتوفير المساحة' : 'Audio file archived to optimize storage'}
+                            </span>
+                            <p className="text-[11px] text-muted-foreground">
+                                {isRtl
+                                    ? 'النص الكامل والتفريغ الدقيق والملخص والاختبارات محفوظة ومتاحة دائماً في مساحة عملك.'
+                                    : 'The full transcript text, summary, and quizzes remain permanently accessible.'}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <div className="rounded-3xl overflow-hidden bg-black border border-border/80 shadow-xl aspect-video static lg:sticky lg:top-24">
+                    <iframe
+                        ref={iframeRef}
+                        src={`https://www.youtube.com/embed/${transcript.youtube_id}`}
+                        title={transcript.title}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full border-0"
+                    />
+                </div>
+            )}
 
             {/* Video Metadata Card */}
             <div className="p-5 sm:p-6 rounded-3xl bg-card border border-border/80 shadow-xs space-y-4">

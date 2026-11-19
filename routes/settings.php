@@ -18,4 +18,9 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
     })->name('appearance');
+
+    Route::get('settings/telegram', [\App\Http\Controllers\Settings\TelegramSettingsController::class, 'index'])->name('telegram.edit');
+    Route::post('settings/telegram/generate', [\App\Http\Controllers\Settings\TelegramSettingsController::class, 'generateCode'])->name('telegram.generate');
+    Route::post('settings/telegram/disconnect', [\App\Http\Controllers\Settings\TelegramSettingsController::class, 'disconnect'])->name('telegram.disconnect');
+    Route::patch('settings/telegram/preferences', [\App\Http\Controllers\Settings\TelegramSettingsController::class, 'updatePreferences'])->name('telegram.preferences');
 });

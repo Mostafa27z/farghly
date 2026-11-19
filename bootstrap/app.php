@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.active' => \App\Http\Middleware\EnsureTenantHasActiveSubscription::class,
             'role.super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'role.staff' => \App\Http\Middleware\EnsureSalesOrAdmin::class,
+            'telegram.webhook' => \App\Http\Middleware\VerifyTelegramWebhook::class,
+        ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/telegram',
+            'telegram/upload/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

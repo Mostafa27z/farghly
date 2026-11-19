@@ -25,6 +25,7 @@ Route::get('/subscription/inactive', function (\Illuminate\Http\Request $request
 Route::middleware(['auth', 'tenant.active'])->group(function () {
     Route::get('/dashboard', [TranscriptController::class, 'index'])->name('dashboard');
     Route::post('/transcripts', [TranscriptController::class, 'store'])->name('transcripts.store');
+    Route::post('/transcripts/upload', [TranscriptController::class, 'storeUpload'])->name('transcripts.upload');
     Route::get('/transcripts/{transcript}', [TranscriptController::class, 'show'])->name('transcripts.show');
     Route::get('/transcripts/{transcript}/export/srt', [TranscriptController::class, 'exportSrt'])->name('transcripts.export.srt');
     Route::get('/transcripts/{transcript}/export/vtt', [TranscriptController::class, 'exportVtt'])->name('transcripts.export.vtt');
@@ -74,6 +75,30 @@ Route::middleware(['auth', 'role.super_admin'])->prefix('admin')->name('admin.')
     Route::post('/sales-team', [\App\Http\Controllers\Admin\SalesTeamController::class, 'store'])->name('sales-team.store');
     Route::post('/sales-team/{user}/toggle', [\App\Http\Controllers\Admin\SalesTeamController::class, 'toggleStatus'])->name('sales-team.toggle');
     Route::post('/sales-team/{user}/password', [\App\Http\Controllers\Admin\SalesTeamController::class, 'updatePassword'])->name('sales-team.password');
+
+    // Plans & Pricing Management
+    Route::get('/plans', [\App\Http\Controllers\Admin\PlanManagementController::class, 'index'])->name('plans.index');
+    Route::post('/plans', [\App\Http\Controllers\Admin\PlanManagementController::class, 'store'])->name('plans.store');
+    Route::put('/plans/{plan}', [\App\Http\Controllers\Admin\PlanManagementController::class, 'update'])->name('plans.update');
+    Route::post('/plans/{plan}/toggle', [\App\Http\Controllers\Admin\PlanManagementController::class, 'toggle'])->name('plans.toggle');
+    Route::delete('/plans/{plan}', [\App\Http\Controllers\Admin\PlanManagementController::class, 'destroy'])->name('plans.destroy');
+});
+
+// ==========================================
+// Telegram Bot Webhook & Scoped Upload
+// ==========================================
+Route::post('/webhooks/telegram', [\App\Http\Controllers\Telegram\TelegramWebhookController::class, 'handle'])
+    ->middleware('telegram.webhook')
+    ->name('telegram.webhook');
+
+Route::prefix('telegram/upload')->name('telegram.scoped-upload.')->group(function () {
+    Route::get('/{token}', [\App\Http\Controllers\Telegram\TelegramScopedUploadController::class, 'show'])
+        ->middleware('signed')
+        ->name('show');
+    Route::post('/{token}', [\App\Http\Controllers\Telegram\TelegramScopedUploadController::class, 'upload'])
+        ->name('store');
+    Route::get('/{token}/status/{pendingId}', [\App\Http\Controllers\Telegram\TelegramScopedUploadController::class, 'status'])
+        ->name('status');
 });
 
 require __DIR__.'/settings.php';

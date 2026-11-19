@@ -14,8 +14,12 @@ class Transcript extends Model
     protected $fillable = [
         'tenant_id',
         'user_id',
+        'source_type',
         'youtube_id',
         'video_url',
+        'original_filename',
+        'media_path',
+        'file_size_bytes',
         'title',
         'channel_name',
         'thumbnail_url',
@@ -33,6 +37,10 @@ class Transcript extends Model
         'proofread_generated_at',
     ];
 
+    protected $appends = [
+        'media_url',
+    ];
+
     protected $casts = [
         'segments' => 'array',
         'duration_seconds' => 'integer',
@@ -46,6 +54,18 @@ class Transcript extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Publicly accessible media URL for uploaded audio.
+     */
+    public function getMediaUrlAttribute(): ?string
+    {
+        if (empty($this->media_path)) {
+            return null;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->media_path);
     }
 
     /**

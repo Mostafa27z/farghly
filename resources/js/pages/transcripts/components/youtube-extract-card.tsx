@@ -1,22 +1,57 @@
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/hooks/use-language';
-import { useForm } from '@inertiajs/react';
-import { ClipboardPaste, HelpCircle, Loader2, Sparkles, Video, Wand2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { prepareMediaForTranscription } from '@/utils/audio-extractor';
+import { router, useForm, usePage } from '@inertiajs/react';
+import {
+    CheckCircle2,
+    ClipboardPaste,
+    Clock,
+    FileAudio,
+    FileVideo,
+    Loader2,
+    Sparkles,
+    UploadCloud,
+    Video,
+    Wand2,
+    Zap,
+} from 'lucide-react';
+import React, { useRef, useState } from 'react';
 
 export default function YoutubeExtractCard() {
     const { isRtl } = useLanguage();
+    const { tenant } = usePage().props as any;
+    const [mode, setMode] = useState<'youtube' | 'upload'>('youtube');
     const [isFocused, setIsFocused] = useState(false);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    // YouTube Form
+    const {
+        data: ytData,
+        setData: setYtData,
+        post: postYt,
+        processing: ytProcessing,
+        errors: ytErrors,
+        reset: resetYt,
+    } = useForm({
         url: '',
     });
 
-    const handleExtract = (e: React.FormEvent) => {
+    // File Upload Form State
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [title, setTitle] = useState('');
+    const [channelName, setChannelName] = useState('');
+    const [language, setLanguage] = useState('ar');
+    const [isConverting, setIsConverting] = useState(false);
+    const [conversionProgress, setConversionProgress] = useState(0);
+    const [statusMessage, setStatusMessage] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleYoutubeExtract = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!data.url.trim()) return;
-        post(route('transcripts.store'), {
-            onSuccess: () => reset('url'),
+        if (!ytData.url.trim()) return;
+        postYt(route('transcripts.store'), {
+            onSuccess: () => resetYt('url'),
         });
     };
 
@@ -25,12 +60,95 @@ export default function YoutubeExtractCard() {
             if (navigator?.clipboard?.readText) {
                 const text = await navigator.clipboard.readText();
                 if (text && (text.includes('youtube.com') || text.includes('youtu.be'))) {
-                    setData('url', text.trim());
+                    setYtData('url', text.trim());
                 }
             }
         } catch {
             // ignore clipboard permission error
         }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setSelectedFile(file);
+            setUploadError(null);
+            if (!title) {
+                // Auto-fill title from clean filename
+                const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                setTitle(cleanName);
+            }
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            setSelectedFile(file);
+            setUploadError(null);
+            if (!title) {
+                const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+                setTitle(cleanName);
+            }
+        }
+    };
+
+    const handleFileUploadSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedFile) return;
+
+        setUploadError(null);
+        setIsConverting(true);
+        setConversionProgress(5);
+        setStatusMessage(isRtl ? 'جارٍ فحص الملف الصوتي...' : 'Inspecting media file...');
+
+        try {
+            // 1. In-browser extraction & optimization (saves 95%+ bandwidth)
+            const extracted = await prepareMediaForTranscription(selectedFile, (pct, msg) => {
+                setConversionProgress(pct);
+                setStatusMessage(msg);
+            });
+
+            setIsConverting(false);
+            setIsUploading(true);
+            setStatusMessage(isRtl ? 'جارٍ رفع الصوت والتفريغ بالذكاء الاصطناعي...' : 'Uploading and transcribing with AI...');
+
+            // 2. Submit to Laravel
+            const formData = new FormData();
+            formData.append('file', extracted.file, extracted.originalName.replace(/\.[^/.]+$/, '') + '.wav');
+            formData.append('title', title || extracted.originalName);
+            formData.append('channel_name', channelName || (isRtl ? 'تسجيل مرفوع' : 'Uploaded Media'));
+            formData.append('language', language);
+            formData.append('duration_seconds', String(extracted.durationSeconds));
+
+            router.post(route('transcripts.upload'), formData, {
+                forceFormData: true,
+                onSuccess: () => {
+                    setSelectedFile(null);
+                    setTitle('');
+                    setChannelName('');
+                    setIsUploading(false);
+                },
+                onError: (errs) => {
+                    setIsUploading(false);
+                    const msg = errs.file || errs.title || Object.values(errs)[0] || 'فشل في رفع وتفريغ الملف.';
+                    setUploadError(String(msg));
+                },
+            });
+        } catch (err: any) {
+            setIsConverting(false);
+            setIsUploading(false);
+            setUploadError(err?.message || (isRtl ? 'حدث خطأ أثناء معالجة الملف في المتصفح.' : 'Error extracting media in browser.'));
+        }
+    };
+
+    const formatBytes = (bytes: number) => {
+        if (!bytes) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     };
 
     return (
@@ -39,7 +157,8 @@ export default function YoutubeExtractCard() {
             <div className="absolute top-0 end-0 -mt-12 -me-12 size-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
             <div className="flex flex-col gap-5 relative z-10">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                {/* Header with Title and Mode Switcher */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
                         <div className="size-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
                             <Sparkles className="size-5" />
@@ -50,88 +169,263 @@ export default function YoutubeExtractCard() {
                             </h2>
                             <p className="text-xs text-muted-foreground mt-0.5">
                                 {isRtl
-                                    ? 'الصق رابط أي فيديو أو شرح من يوتيوب لتحويله فورياً لنص دقيق ومذكرة دراسية'
-                                    : 'Paste any YouTube video URL to automatically extract transcripts and build student handouts'}
+                                    ? 'استخرج نصوص الشروحات وحوّلها لمذكرات واختبارات دراسية ذكية بهويتك'
+                                    : 'Extract word-level transcripts and build student handouts & quizzes'}
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-medium border border-border/70">
-                            <span className="size-1.5 rounded-full bg-emerald-500" />
-                            {isRtl ? 'شروحات طويلة و Shorts' : 'Long videos & Shorts'}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 text-muted-foreground text-[11px] font-medium border border-border/70">
-                            <span className="size-1.5 rounded-full bg-primary" />
-                            {isRtl ? 'توقيت زمني بالثواني' : 'Word-level timestamps'}
-                        </span>
+                    {/* Source Toggle Tabs */}
+                    <div className="inline-flex p-1 rounded-2xl bg-muted/60 border border-border/70 self-start md:self-auto">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('youtube');
+                                setUploadError(null);
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                mode === 'youtube'
+                                    ? 'bg-background text-foreground shadow-xs border border-border/60'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <Video className="size-4 text-red-500" />
+                            <span>{isRtl ? 'رابط يوتيوب' : 'YouTube URL'}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMode('upload');
+                                setUploadError(null);
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                mode === 'upload'
+                                    ? 'bg-background text-primary shadow-xs border border-border/60'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            <UploadCloud className="size-4 text-primary" />
+                            <span>{isRtl ? 'رفع ملف صوت / فيديو' : 'Upload Audio / Video'}</span>
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
+                                {tenant?.remaining_recording_minutes !== undefined
+                                    ? `${tenant.remaining_recording_minutes} ${isRtl ? 'دقيقة متاحة' : 'mins left'}`
+                                    : 'Groq AI'}
+                            </span>
+                        </button>
                     </div>
                 </div>
 
-                <form onSubmit={handleExtract} className="space-y-3">
-                    <div
-                        className={`relative flex flex-col sm:flex-row items-center gap-2.5 p-2 rounded-2xl bg-background border transition-all duration-300 ${
-                            isFocused
-                                ? 'border-primary ring-4 ring-primary/10 shadow-md'
-                                : 'border-border/80 hover:border-border'
-                        }`}
-                    >
-                        <div className="flex items-center gap-3 w-full px-3">
-                            <Video className="size-5 text-muted-foreground shrink-0" />
-                            <input
-                                id="youtube-url-input"
-                                type="url"
-                                required
-                                value={data.url}
-                                onChange={(e) => setData('url', e.target.value)}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => setIsFocused(false)}
-                                placeholder={
-                                    isRtl
-                                        ? 'ضع رابط فيديو اليوتيوب هنا (مثال: https://youtube.com/watch?v=...)'
-                                        : 'Paste YouTube video URL here (e.g., https://youtube.com/watch?v=...)'
-                                }
-                                className="w-full bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-hidden py-2.5"
-                            />
+                {/* MODE 1: YouTube Extraction */}
+                {mode === 'youtube' && (
+                    <form onSubmit={handleYoutubeExtract} className="space-y-3">
+                        <div
+                            className={`relative flex flex-col sm:flex-row items-center gap-2.5 p-2 rounded-2xl bg-background border transition-all duration-300 ${
+                                isFocused
+                                    ? 'border-primary ring-4 ring-primary/10 shadow-md'
+                                    : 'border-border/80 hover:border-border'
+                            }`}
+                        >
+                            <div className="flex items-center gap-3 w-full px-3">
+                                <Video className="size-5 text-muted-foreground shrink-0" />
+                                <input
+                                    id="youtube-url-input"
+                                    type="url"
+                                    required
+                                    value={ytData.url}
+                                    onChange={(e) => setYtData('url', e.target.value)}
+                                    onFocus={() => setIsFocused(true)}
+                                    onBlur={() => setIsFocused(false)}
+                                    placeholder={
+                                        isRtl
+                                            ? 'ضع رابط فيديو اليوتيوب هنا (مثال: https://youtube.com/watch?v=...)'
+                                            : 'Paste YouTube video URL here (e.g., https://youtube.com/watch?v=...)'
+                                    }
+                                    className="w-full bg-transparent text-xs sm:text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-hidden py-2.5"
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={handlePasteClipboard}
+                                    className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
+                                    title={isRtl ? 'لصق من الحافظة' : 'Paste from clipboard'}
+                                >
+                                    <ClipboardPaste className="size-4 text-primary" />
+                                    <span>{isRtl ? 'لصق' : 'Paste'}</span>
+                                </button>
+
+                                <Button
+                                    type="submit"
+                                    disabled={ytProcessing || !ytData.url.trim()}
+                                    className="w-full sm:w-auto rounded-xl px-6 py-2.5 text-xs font-extrabold shadow-md shadow-primary/25 shrink-0 cursor-pointer gap-2"
+                                >
+                                    {ytProcessing ? (
+                                        <>
+                                            <Loader2 className="size-4 animate-spin" />
+                                            <span>{isRtl ? 'جارٍ الاستخراج...' : 'Extracting...'}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Wand2 className="size-4" />
+                                            <span>{isRtl ? 'تفريغ وتلخيص' : 'Extract & Summarize'}</span>
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end">
-                            <button
-                                type="button"
-                                onClick={handlePasteClipboard}
-                                className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer"
-                                title={isRtl ? 'لصق من الحافظة' : 'Paste from clipboard'}
-                            >
-                                <ClipboardPaste className="size-4 text-primary" />
-                                <span>{isRtl ? 'لصق' : 'Paste'}</span>
-                            </button>
+                        {ytErrors.url && (
+                            <p className="text-xs text-destructive font-bold ps-2">{ytErrors.url}</p>
+                        )}
+                    </form>
+                )}
+
+                {/* MODE 2: Upload Audio / Video (Client-Side Compression + Groq Whisper) */}
+                {mode === 'upload' && (
+                    <form onSubmit={handleFileUploadSubmit} className="space-y-4">
+                        {/* Drag and Drop Zone */}
+                        <div
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                            className={`p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-3 ${
+                                selectedFile
+                                    ? 'border-primary/60 bg-primary/5'
+                                    : 'border-border/80 hover:border-primary/50 bg-background/50 hover:bg-background'
+                            }`}
+                        >
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.aac,.webm,.mp4,.mov,.mkv"
+                                onChange={handleFileChange}
+                                className="hidden"
+                            />
+
+                            {selectedFile ? (
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="size-12 rounded-2xl bg-primary/15 text-primary flex items-center justify-center">
+                                        {selectedFile.type.startsWith('video/') ? (
+                                            <FileVideo className="size-6" />
+                                        ) : (
+                                            <FileAudio className="size-6" />
+                                        )}
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <p className="text-sm font-extrabold text-foreground max-w-md truncate">
+                                            {selectedFile.name}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground font-mono">
+                                            {formatBytes(selectedFile.size)} • {isRtl ? 'انقر لتغيير الملف' : 'Click to change'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="size-12 rounded-2xl bg-muted/70 text-muted-foreground flex items-center justify-center">
+                                        <UploadCloud className="size-6 text-primary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-xs sm:text-sm font-bold text-foreground">
+                                            {isRtl
+                                                ? 'اسحب وأفلت ملف المحاضرة هنا أو انقر للاختيار'
+                                                : 'Drag and drop your audio/video file here, or browse'}
+                                        </p>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            {isRtl
+                                                ? 'يدعم MP4, MP3, WAV, M4A, MOV, WEBM (يتم ضغط واستخلاص الصوت بالمتصفح فورياً)'
+                                                : 'Supports MP4, MP3, WAV, M4A, MOV, WEBM (optimized in browser)'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Title and Metadata Inputs (when file is chosen) */}
+                        {selectedFile && (
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 sm:p-4 rounded-2xl bg-background border border-border/80">
+                                <div className="space-y-1 sm:col-span-2">
+                                    <label className="text-[11px] font-bold text-muted-foreground">
+                                        {isRtl ? 'عنوان المحاضرة' : 'Lecture Title'}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder={isRtl ? 'مثال: مقدمة في التشريح الطبي - المحاضرة 1' : 'e.g. Anatomy Lecture 1'}
+                                        className="w-full text-xs font-medium px-3 py-2 rounded-xl bg-muted/40 border border-border/70 text-foreground focus:outline-hidden focus:border-primary"
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[11px] font-bold text-muted-foreground">
+                                        {isRtl ? 'لغة المحاضرة' : 'Language'}
+                                    </label>
+                                    <select
+                                        value={language}
+                                        onChange={(e) => setLanguage(e.target.value)}
+                                        className="w-full text-xs font-medium px-3 py-2 rounded-xl bg-muted/40 border border-border/70 text-foreground focus:outline-hidden focus:border-primary"
+                                    >
+                                        <option value="ar">العربية (Arabic)</option>
+                                        <option value="en">الإنجليزية (English)</option>
+                                        <option value="auto">اكتشاف تلقائي (Auto Detect)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Progress Bar during conversion/upload */}
+                        {(isConverting || isUploading) && (
+                            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 space-y-2">
+                                <div className="flex items-center justify-between text-xs font-bold text-foreground">
+                                    <span className="flex items-center gap-2">
+                                        <Loader2 className="size-3.5 animate-spin text-primary" />
+                                        <span>{statusMessage}</span>
+                                    </span>
+                                    <span className="font-mono text-primary">{conversionProgress}%</span>
+                                </div>
+                                <div className="w-full h-2 rounded-full bg-primary/15 overflow-hidden">
+                                    <div
+                                        className="h-full bg-primary transition-all duration-300"
+                                        style={{ width: `${conversionProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {uploadError && (
+                            <p className="text-xs text-destructive font-bold ps-2">{uploadError}</p>
+                        )}
+
+                        {/* Submit Button */}
+                        <div className="flex items-center justify-between pt-1">
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                                <Zap className="size-3.5 text-emerald-500" />
+                                <span>{isRtl ? 'معالجة فائقة السرعة عبر Groq Whisper Large v3' : 'Ultra-fast Groq Whisper Large v3'}</span>
+                            </span>
 
                             <Button
                                 type="submit"
-                                disabled={processing || !data.url.trim()}
-                                className="w-full sm:w-auto rounded-xl px-6 py-2.5 text-xs font-extrabold shadow-md shadow-primary/25 shrink-0 cursor-pointer gap-2"
+                                disabled={!selectedFile || isConverting || isUploading}
+                                className="rounded-xl px-6 py-2.5 text-xs font-extrabold shadow-md shadow-primary/25 cursor-pointer gap-2"
                             >
-                                {processing ? (
+                                {isConverting || isUploading ? (
                                     <>
                                         <Loader2 className="size-4 animate-spin" />
-                                        <span>{isRtl ? 'جارٍ الاستخراج...' : 'Extracting...'}</span>
+                                        <span>{isRtl ? 'جارٍ المعالجة والتفريغ...' : 'Processing...'}</span>
                                     </>
                                 ) : (
                                     <>
                                         <Wand2 className="size-4" />
-                                        <span>{isRtl ? 'تفريغ وتلخيص' : 'Extract & Summarize'}</span>
+                                        <span>{isRtl ? 'بدء التفريغ بالذكاء الاصطناعي' : 'Start AI Transcription'}</span>
                                     </>
                                 )}
                             </Button>
                         </div>
-                    </div>
-
-                    {errors.url && (
-                        <p className="text-xs text-destructive font-bold ps-2">
-                            {errors.url}
-                        </p>
-                    )}
-                </form>
+                    </form>
+                )}
             </div>
         </div>
     );

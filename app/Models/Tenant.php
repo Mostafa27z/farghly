@@ -23,6 +23,8 @@ class Tenant extends Model
         'monthly_videos_used',
         'monthly_minutes_limit',
         'monthly_minutes_used',
+        'monthly_recording_minutes_limit',
+        'monthly_recording_minutes_used',
         'max_team_members',
         'created_by_sales_id',
     ];
@@ -34,6 +36,8 @@ class Tenant extends Model
         'monthly_videos_used' => 'integer',
         'monthly_minutes_limit' => 'integer',
         'monthly_minutes_used' => 'integer',
+        'monthly_recording_minutes_limit' => 'integer',
+        'monthly_recording_minutes_used' => 'integer',
         'max_team_members' => 'integer',
     ];
 
@@ -71,6 +75,46 @@ class Tenant extends Model
         $limit = $this->monthly_minutes_limit ?: (($this->monthly_videos_limit ?: 150) * 20);
         $used = $this->monthly_minutes_used ?? 0;
         return max(0, $limit - $used);
+    }
+
+    /**
+     * Compute remaining audio/video recording minutes for the current billing cycle.
+     */
+    public function remainingRecordingMinutes(): int
+    {
+        $limit = $this->monthly_recording_minutes_limit ?? 300;
+        $used = $this->monthly_recording_minutes_used ?? 0;
+        return max(0, $limit - $used);
+    }
+
+    /**
+     * Verify whether tenant has sufficient balance for uploaded audio/recording transcription.
+     */
+    public function canTranscribeRecord(?int $videoDurationSeconds = null): bool
+    {
+        if (!$this->hasActiveSubscription()) {
+            return false;
+        }
+
+        if ($this->remainingRecordingMinutes() < 1) {
+            return false;
+        }
+
+        if ($videoDurationSeconds !== null) {
+            $requiredMinutes = (int) max(1, ceil($videoDurationSeconds / 60));
+            return $this->remainingRecordingMinutes() >= $requiredMinutes;
+        }
+
+        return true;
+    }
+
+    /**
+     * Record usage for audio/video recording transcription.
+     */
+    public function recordRecordingUsage(?int $videoDurationSeconds = null): void
+    {
+        $minutes = $videoDurationSeconds ? (int) max(1, ceil($videoDurationSeconds / 60)) : 1;
+        $this->increment('monthly_recording_minutes_used', $minutes);
     }
 
     /**

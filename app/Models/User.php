@@ -95,6 +95,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Linked Telegram connection for this user.
+     */
+    public function telegramConnection()
+    {
+        return $this->hasOne(TelegramConnection::class);
+    }
+
+    /**
+     * Telegram link / scoped upload codes for this user.
+     */
+    public function telegramLinkCodes()
+    {
+        return $this->hasMany(TelegramLinkCode::class);
+    }
+
+    /**
      * Get attributes that should be cast.
      *
      * @return array<string, string>

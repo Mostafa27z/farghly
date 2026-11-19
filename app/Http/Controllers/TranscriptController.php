@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transcript;
+use App\Services\AudioTranscriptionService;
 use App\Services\DocumentThemeService;
 use App\Services\GeminiSummaryService;
 use App\Services\WordExportService;
 use App\Services\YouTubeTranscriptService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -15,7 +18,8 @@ class TranscriptController extends Controller
 {
     public function __construct(
         protected YouTubeTranscriptService $transcriptService,
-        protected DocumentThemeService $themeService
+        protected DocumentThemeService $themeService,
+        protected AudioTranscriptionService $audioService
     ) {}
 
     /**
@@ -48,6 +52,9 @@ class TranscriptController extends Controller
                 'monthly_minutes_limit' => $tenant->monthly_minutes_limit,
                 'monthly_minutes_used' => $tenant->monthly_minutes_used,
                 'remaining_minutes' => $tenant->remainingVideos(),
+                'monthly_recording_minutes_limit' => $tenant->monthly_recording_minutes_limit ?? 300,
+                'monthly_recording_minutes_used' => $tenant->monthly_recording_minutes_used ?? 0,
+                'remaining_recording_minutes' => $tenant->remainingRecordingMinutes(),
                 'expires_at' => $tenant->expires_at?->format('Y-m-d'),
             ],
             'filters' => [
@@ -117,6 +124,85 @@ class TranscriptController extends Controller
         $tenant->recordUsage($durationSeconds);
 
         return redirect()->route('transcripts.show', $transcript->id)->with('success', 'تم استخراج وتفريغ نص الفيديو بنجاح!');
+    }
+
+    /**
+     * Transcribe uploaded audio/video file and save to workspace.
+     */
+    public function storeUpload(Request $request)
+    {
+        if ($request->user()->isSales()) {
+            abort(403, 'غير مصرح لحساب المبيعات باستخدام خدمة التفريغ.');
+        }
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:51200', 'mimes:mp3,wav,ogg,m4a,aac,webm,mp4,mov'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'channel_name' => ['nullable', 'string', 'max:255'],
+            'language' => ['nullable', 'string', 'max:10'],
+            'duration_seconds' => ['nullable', 'integer', 'min:0'],
+        ], [
+            'file.required' => 'يرجى اختيار ملف صوتي أو فيديو صالح.',
+            'file.max' => 'الحد الأقصى لحجم الملف هو 50 ميجابايت.',
+        ]);
+
+        $tenant = $request->user()->currentTenant;
+        $clientDuration = (int) $request->input('duration_seconds', 0);
+
+        if ($clientDuration > 0 && !$tenant->canTranscribeRecord($clientDuration)) {
+            $fileMinutes = (int) ceil($clientDuration / 60);
+            $remMinutes = $tenant->remainingRecordingMinutes();
+            return back()->withErrors([
+                'file' => "عذراً، رصيد دقائق التسجيل والتفريغ الصوتي المتبقي في باقتك ({$remMinutes} دقيقة) غير كافٍ لتفريغ هذا الملف ({$fileMinutes} دقيقة).",
+            ]);
+        }
+
+        $file = $request->file('file');
+        $ext = $file->getClientOriginalExtension() ?: 'mp3';
+        $fileName = 'audio_' . time() . '_' . Str::random(8) . '.' . $ext;
+        $mediaPath = $file->storeAs("transcripts/{$tenant->id}", $fileName, 'public');
+
+        // Transcribe via AudioTranscriptionService (Groq Whisper or Gemini fallback)
+        $result = $this->audioService->transcribe($file, $request->input('language', 'ar'));
+
+        if (!$result['success']) {
+            Storage::disk('public')->delete($mediaPath);
+            return back()->withErrors([
+                'file' => $result['message_ar'] ?? 'فشل في تفريغ الملف الصوتي.',
+            ]);
+        }
+
+        $durationSeconds = $result['duration_seconds'] ?: $clientDuration;
+
+        if (!$tenant->canTranscribeRecord($durationSeconds)) {
+            Storage::disk('public')->delete($mediaPath);
+            $fileMinutes = (int) ceil($durationSeconds / 60);
+            $remMinutes = $tenant->remainingRecordingMinutes();
+            return back()->withErrors([
+                'file' => "عذراً، مدة هذا الملف ({$fileMinutes} دقيقة) تتجاوز رصيد دقائق التسجيل والتفريغ الصوتي المتبقي في باقتك ({$remMinutes} دقيقة).",
+            ]);
+        }
+
+        $title = trim($request->input('title') ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+        $channelName = trim($request->input('channel_name') ?: 'تسجيل صوتي مرفوع');
+
+        $transcript = $tenant->transcripts()->create([
+            'user_id' => $request->user()->id,
+            'source_type' => 'file',
+            'title' => $title,
+            'channel_name' => $channelName,
+            'original_filename' => $file->getClientOriginalName(),
+            'media_path' => $mediaPath,
+            'file_size_bytes' => $file->getSize(),
+            'duration_seconds' => $durationSeconds,
+            'language' => $result['language'] ?? 'ar',
+            'segments' => $result['segments'] ?? [],
+            'full_text' => $result['full_text'] ?? '',
+        ]);
+
+        $tenant->recordRecordingUsage($durationSeconds);
+
+        return redirect()->route('transcripts.show', $transcript->id)->with('success', 'تم استخراج وتفريغ الملف الصوتي بنجاح!');
     }
 
     /**
@@ -190,6 +276,9 @@ class TranscriptController extends Controller
                 'monthly_videos_used' => $tenant->monthly_videos_used ?? 0,
                 'remaining_videos' => $tenant->remainingVideos(),
                 'remaining_minutes' => $tenant->remainingVideos(),
+                'monthly_recording_minutes_limit' => $tenant->monthly_recording_minutes_limit ?? 300,
+                'monthly_recording_minutes_used' => $tenant->monthly_recording_minutes_used ?? 0,
+                'remaining_recording_minutes' => $tenant->remainingRecordingMinutes(),
                 'max_flashcards' => $tenant->maxFlashcardsPerVideo(),
             ],
             'themes' => $themes,
@@ -207,7 +296,8 @@ class TranscriptController extends Controller
         $this->authorizeTranscriptAccess($request, $transcript);
 
         $srtContent = $transcript->toSrt();
-        $filename = 'transcript_' . $transcript->youtube_id . '.srt';
+        $fileId = $transcript->youtube_id ?: substr($transcript->id, 0, 8);
+        $filename = 'transcript_' . $fileId . '.srt';
 
         return response()->streamDownload(function () use ($srtContent) {
             echo "\xEF\xBB\xBF"; // UTF-8 BOM for Arabic support in editing software
@@ -225,7 +315,8 @@ class TranscriptController extends Controller
         $this->authorizeTranscriptAccess($request, $transcript);
 
         $vttContent = $transcript->toVtt();
-        $filename = 'transcript_' . $transcript->youtube_id . '.vtt';
+        $fileId = $transcript->youtube_id ?: substr($transcript->id, 0, 8);
+        $filename = 'transcript_' . $fileId . '.vtt';
 
         return response()->streamDownload(function () use ($vttContent) {
             echo "\xEF\xBB\xBF";
@@ -243,12 +334,13 @@ class TranscriptController extends Controller
         $this->authorizeTranscriptAccess($request, $transcript);
 
         $type = $request->input('type', 'raw');
+        $fileId = $transcript->youtube_id ?: substr($transcript->id, 0, 8);
         if ($type === 'proofread' && !empty($transcript->proofread_text)) {
             $txtContent = $transcript->proofread_text;
-            $filename = 'proofread_' . $transcript->youtube_id . '.txt';
+            $filename = 'proofread_' . $fileId . '.txt';
         } else {
             $txtContent = $transcript->full_text;
-            $filename = 'transcript_' . $transcript->youtube_id . '.txt';
+            $filename = 'transcript_' . $fileId . '.txt';
         }
 
         return response()->streamDownload(function () use ($txtContent) {

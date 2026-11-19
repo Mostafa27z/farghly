@@ -8,6 +8,7 @@ import {
     Captions,
     ChevronLeft,
     ChevronRight,
+    CreditCard,
     FolderOpen,
     HelpCircle,
     KeyRound,
@@ -123,6 +124,13 @@ export default function DashboardLayout({
                                         href: route('admin.dashboard'),
                                         icon: ShieldCheck,
                                         active: isCurrent('admin.dashboard'),
+                                    },
+                                    {
+                                        titleAr: 'إدارة الباقات والأسعار',
+                                        titleEn: 'Plans & Limits',
+                                        href: route('admin.plans.index'),
+                                        icon: CreditCard,
+                                        active: isCurrent('admin.plans.*'),
                                     },
                                     {
                                         titleAr: 'إدارة العملاء والاشتراكات',

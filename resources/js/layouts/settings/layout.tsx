@@ -1,7 +1,7 @@
 import DashboardLayout from '@/layouts/dashboard-layout';
 import { useLanguage } from '@/hooks/use-language';
 import { Link } from '@inertiajs/react';
-import { KeyRound, SlidersHorizontal, User } from 'lucide-react';
+import { KeyRound, Send, SlidersHorizontal, User } from 'lucide-react';
 import React from 'react';
 
 interface SettingsLayoutProps {
@@ -42,6 +42,13 @@ export default function SettingsLayout({ children, title, subtitle }: SettingsLa
             href: route('appearance'),
             icon: SlidersHorizontal,
             active: isCurrent('appearance'),
+        },
+        {
+            titleAr: 'ربط تيليجرام',
+            titleEn: 'Telegram Bot',
+            href: route('telegram.edit'),
+            icon: Send,
+            active: isCurrent('telegram.*'),
         },
     ];
 

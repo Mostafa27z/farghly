@@ -6,7 +6,9 @@ import {
     Calendar,
     Clock,
     FileText,
+    Music,
     Play,
+    Send,
     Sparkles,
     Tv,
 } from 'lucide-react';
@@ -14,10 +16,11 @@ import React from 'react';
 
 interface TranscriptItem {
     id: string;
-    youtube_id: string;
+    source_type?: string;
+    youtube_id?: string | null;
     title: string;
     channel_name: string;
-    thumbnail_url: string;
+    thumbnail_url?: string | null;
     duration_seconds: number;
     language: string;
     created_at: string;
@@ -53,16 +56,29 @@ export default function TranscriptGridCard({ transcript }: Props) {
         }
     };
 
+    const hasThumbnail = Boolean(transcript.thumbnail_url || transcript.youtube_id);
+
     return (
         <div className="group rounded-3xl bg-card border border-border/80 hover:border-primary/50 transition-all duration-300 shadow-xs hover:shadow-lg flex flex-col overflow-hidden">
             {/* Thumbnail Header */}
             <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                <img
-                    src={transcript.thumbnail_url || `https://img.youtube.com/vi/${transcript.youtube_id}/hqdefault.jpg`}
-                    alt={transcript.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                />
+                {hasThumbnail ? (
+                    <img
+                        src={transcript.thumbnail_url || `https://img.youtube.com/vi/${transcript.youtube_id}/hqdefault.jpg`}
+                        alt={transcript.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/15 via-background to-primary/5 flex flex-col items-center justify-center gap-2 group-hover:scale-105 transition-transform duration-500">
+                        <div className="size-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center">
+                            <Music className="size-6" />
+                        </div>
+                        <span className="text-[11px] font-bold text-muted-foreground uppercase font-mono tracking-wider">
+                            {isRtl ? 'ملف صوتي مفرغ' : 'Audio Transcript'}
+                        </span>
+                    </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                 {/* Duration Badge */}
@@ -71,10 +87,18 @@ export default function TranscriptGridCard({ transcript }: Props) {
                     <span>{formatDuration(transcript.duration_seconds)}</span>
                 </span>
 
-                {/* Language Badge */}
-                <span className="absolute top-2.5 start-2.5 px-2 py-0.5 rounded-lg bg-primary/90 text-primary-foreground text-[10px] font-mono font-bold uppercase shadow-xs">
-                    {transcript.language || 'AR'}
-                </span>
+                {/* Language & Source Badge */}
+                <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 z-10">
+                    <span className="px-2 py-0.5 rounded-lg bg-primary/90 text-primary-foreground text-[10px] font-mono font-bold uppercase shadow-xs">
+                        {transcript.language || 'AR'}
+                    </span>
+                    {transcript.source_type === 'telegram' && (
+                        <span className="px-2 py-0.5 rounded-lg bg-sky-500/95 text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                            <Send className="size-2.5" />
+                            <span>تيليجرام</span>
+                        </span>
+                    )}
+                </div>
 
                 {/* Play Hover Overlay */}
                 <Link

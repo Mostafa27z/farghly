@@ -29,6 +29,9 @@ interface TenantInfo {
     monthly_minutes_limit?: number;
     monthly_minutes_used?: number;
     remaining_minutes?: number;
+    monthly_recording_minutes_limit?: number;
+    monthly_recording_minutes_used?: number;
+    remaining_recording_minutes?: number;
     expires_at: string;
 }
 

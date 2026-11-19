@@ -82,6 +82,9 @@ class SalesController extends Controller
                 'monthly_minutes_limit' => $tenant->monthly_minutes_limit,
                 'monthly_minutes_used' => $tenant->monthly_minutes_used,
                 'remaining_minutes' => $tenant->remainingVideos(),
+                'monthly_recording_minutes_limit' => $tenant->monthly_recording_minutes_limit ?? 300,
+                'monthly_recording_minutes_used' => $tenant->monthly_recording_minutes_used ?? 0,
+                'remaining_recording_minutes' => $tenant->remainingRecordingMinutes(),
                 'transcripts_count' => $tenant->transcripts_count,
                 'owner' => $owner ? [
                     'id' => $owner->id,
@@ -134,7 +137,7 @@ class SalesController extends Controller
                 'search' => $search,
             ],
             'myMetrics' => $metrics,
-            'availablePlans' => SubscriptionManagementService::PLANS,
+            'availablePlans' => $this->subscriptionService->getAvailablePlans(),
             'availablePeriods' => SubscriptionManagementService::PERIODS,
         ]);
     }
@@ -153,6 +156,7 @@ class SalesController extends Controller
             'duration_days' => 'required|integer|in:30,90,180,365',
             'monthly_videos_limit' => 'nullable|integer|min:1|max:50000',
             'monthly_minutes_limit' => 'nullable|integer|min:10|max:100000',
+            'monthly_recording_minutes_limit' => 'nullable|integer|min:0|max:500000',
             'amount_collected' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:500',
         ], [
@@ -190,7 +194,10 @@ class SalesController extends Controller
         $request->validate([
             'duration_days' => 'required|integer|in:30,90,180,365',
             'plan_name' => 'nullable|string|max:80',
+            'new_videos_limit' => 'nullable|integer|min:1|max:50000',
+            'new_recording_minutes_limit' => 'nullable|integer|min:0|max:500000',
             'videos_to_add' => 'nullable|integer|min:0|max:50000',
+            'recording_minutes_to_add' => 'nullable|integer|min:0|max:500000',
             'reset_used_videos' => 'nullable|boolean',
             'minutes_to_add' => 'nullable|integer|min:0|max:100000',
             'reset_used_minutes' => 'nullable|boolean',

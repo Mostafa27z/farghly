@@ -6,17 +6,20 @@ import {
     Calendar,
     Clock,
     FileText,
+    Music,
     Play,
+    Send,
     Tv,
 } from 'lucide-react';
 import React from 'react';
 
 interface TranscriptItem {
     id: string;
-    youtube_id: string;
+    source_type?: string;
+    youtube_id?: string | null;
     title: string;
     channel_name: string;
-    thumbnail_url: string;
+    thumbnail_url?: string | null;
     duration_seconds: number;
     language: string;
     created_at: string;
@@ -52,17 +55,25 @@ export default function TranscriptListCard({ transcript }: Props) {
         }
     };
 
+    const hasThumbnail = Boolean(transcript.thumbnail_url || transcript.youtube_id);
+
     return (
         <div className="group w-full rounded-3xl bg-card border border-border/80 hover:border-primary/50 transition-all duration-300 shadow-xs hover:shadow-md p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             {/* Thumbnail + Title Details */}
             <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
                 <div className="relative w-32 sm:w-40 aspect-video rounded-2xl overflow-hidden bg-muted shrink-0 shadow-inner">
-                    <img
-                        src={transcript.thumbnail_url || `https://img.youtube.com/vi/${transcript.youtube_id}/hqdefault.jpg`}
-                        alt={transcript.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                    />
+                    {hasThumbnail ? (
+                        <img
+                            src={transcript.thumbnail_url || `https://img.youtube.com/vi/${transcript.youtube_id}/hqdefault.jpg`}
+                            alt={transcript.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            loading="lazy"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-primary/15 via-background to-primary/5 flex items-center justify-center">
+                            <Music className="size-6 text-primary" />
+                        </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                     <span className="absolute bottom-1.5 end-1.5 px-2 py-0.5 rounded-md bg-black/80 text-white text-[10px] font-mono font-bold">
                         {formatDuration(transcript.duration_seconds)}
@@ -74,6 +85,12 @@ export default function TranscriptListCard({ transcript }: Props) {
                         <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[10px] font-mono font-bold uppercase">
                             {transcript.language || 'AR'}
                         </span>
+                        {transcript.source_type === 'telegram' && (
+                            <span className="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[10px] font-bold flex items-center gap-1">
+                                <Send className="size-2.5" />
+                                <span>تيليجرام</span>
+                            </span>
+                        )}
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Tv className="size-3 text-muted-foreground" />
                             <span className="truncate max-w-[140px] font-medium">{transcript.channel_name || (isRtl ? 'قناة يوتيوب' : 'YouTube Channel')}</span>

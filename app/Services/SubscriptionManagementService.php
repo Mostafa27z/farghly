@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Plan;
 use App\Models\SubscriptionTransaction;
 use App\Models\Tenant;
 use App\Models\User;
@@ -21,24 +22,28 @@ class SubscriptionManagementService
             'name' => 'الباقة المبتدئة (Starter)',
             'videos' => 50,
             'minutes' => 1000,
+            'recording_minutes' => 120, // 2 hours of direct audio/video recording
             'default_price' => 29,
         ],
         'Creator Pro' => [
             'name' => 'صانع المحتوى الاحترافي (Creator Pro)',
             'videos' => 150,
             'minutes' => 3000,
+            'recording_minutes' => 300, // 5 hours of direct audio/video recording
             'default_price' => 59,
         ],
         'Agency' => [
             'name' => 'الوكالات والمؤسسات (Agency)',
             'videos' => 500,
             'minutes' => 10000,
+            'recording_minutes' => 1200, // 20 hours of direct audio/video recording
             'default_price' => 149,
         ],
         'Enterprise' => [
             'name' => 'المشاريع والشركات (Enterprise)',
             'videos' => 1500,
             'minutes' => 30000,
+            'recording_minutes' => 3000, // 50 hours of direct audio/video recording
             'default_price' => 299,
         ],
     ];
@@ -52,6 +57,36 @@ class SubscriptionManagementService
         180 => '6 أشهر (نصف سنوي)',
         365 => 'سنة كاملة (365 يوماً)',
     ];
+
+    /**
+     * Retrieve all active plans dynamically from the database (with fallback to predefined const).
+     */
+    public function getAvailablePlans(): array
+    {
+        try {
+            $plans = Plan::where('is_active', true)->orderBy('sort_order')->get();
+            if ($plans->isNotEmpty()) {
+                $result = [];
+                foreach ($plans as $p) {
+                    $result[$p->name] = [
+                        'id' => $p->id,
+                        'name' => $p->display_name ?: $p->name,
+                        'videos' => (int) $p->monthly_videos_limit,
+                        'minutes' => (int) $p->monthly_minutes_limit,
+                        'recording_minutes' => (int) $p->monthly_recording_minutes_limit,
+                        'default_price' => (float) $p->price,
+                        'max_team_members' => (int) $p->max_team_members,
+                        'description' => $p->description,
+                    ];
+                }
+                return $result;
+            }
+        } catch (\Throwable $e) {
+            // fallback
+        }
+
+        return self::PLANS;
+    }
 
     /**
      * Onboard and create a new client account, tenant workspace, and initial subscription.
@@ -77,7 +112,12 @@ class SubscriptionManagementService
 
             $durationDays = (int) ($data['duration_days'] ?? 30);
             $planName = $data['plan_name'] ?? 'Creator Pro';
-            $videosLimit = (int) ($data['monthly_videos_limit'] ?? ($data['monthly_minutes_limit'] ? round($data['monthly_minutes_limit'] / 20) : 150));
+            $availablePlans = $this->getAvailablePlans();
+            $defaultVideos = $availablePlans[$planName]['videos'] ?? 150;
+            $defaultRec = $availablePlans[$planName]['recording_minutes'] ?? 300;
+
+            $videosLimit = (int) ($data['monthly_videos_limit'] ?? ($data['monthly_minutes_limit'] ? round($data['monthly_minutes_limit'] / 20) : $defaultVideos));
+            $recordingMinutesLimit = isset($data['monthly_recording_minutes_limit']) ? (int) $data['monthly_recording_minutes_limit'] : $defaultRec;
 
             $startsAt = Carbon::now();
             $expiresAt = (clone $startsAt)->addDays($durationDays);
@@ -93,6 +133,8 @@ class SubscriptionManagementService
                 'monthly_videos_used' => 0,
                 'monthly_minutes_limit' => $videosLimit * 20,
                 'monthly_minutes_used' => 0,
+                'monthly_recording_minutes_limit' => $recordingMinutesLimit,
+                'monthly_recording_minutes_used' => 0,
                 'max_team_members' => (int) ($data['max_team_members'] ?? 5),
                 'created_by_sales_id' => $salesAgent->id,
             ]);
@@ -110,6 +152,7 @@ class SubscriptionManagementService
                 'duration_days' => $durationDays,
                 'videos_added' => $videosLimit,
                 'minutes_added' => $videosLimit * 20,
+                'recording_minutes_added' => $recordingMinutesLimit,
                 'previous_expires_at' => null,
                 'new_expires_at' => $expiresAt,
                 'amount_collected' => !empty($data['amount_collected']) ? (float) $data['amount_collected'] : null,
@@ -139,6 +182,7 @@ class SubscriptionManagementService
 
             $planName = $data['plan_name'] ?? $tenant->plan_name;
             $videosToAdd = (int) ($data['videos_to_add'] ?? ($data['minutes_to_add'] ? round($data['minutes_to_add'] / 20) : 0));
+            $recordingMinutesToAdd = (int) ($data['recording_minutes_to_add'] ?? 0);
             $resetUsed = !empty($data['reset_used_videos']) || !empty($data['reset_used_minutes']);
 
             $updateData = [
@@ -150,26 +194,40 @@ class SubscriptionManagementService
             if ($resetUsed) {
                 $updateData['monthly_videos_used'] = 0;
                 $updateData['monthly_minutes_used'] = 0;
+                $updateData['monthly_recording_minutes_used'] = 0;
             }
 
-            if ($videosToAdd > 0) {
-                $currentLimit = $tenant->monthly_videos_limit ?: (int) round(($tenant->monthly_minutes_limit ?? 3000) / 20);
-                $updateData['monthly_videos_limit'] = $currentLimit + $videosToAdd;
-                $updateData['monthly_minutes_limit'] = ($currentLimit + $videosToAdd) * 20;
-            } elseif (!empty($data['new_videos_limit'])) {
+            if (isset($data['new_videos_limit']) && is_numeric($data['new_videos_limit']) && (int) $data['new_videos_limit'] > 0) {
                 $newLimit = (int) $data['new_videos_limit'];
                 $updateData['monthly_videos_limit'] = $newLimit;
                 $updateData['monthly_minutes_limit'] = $newLimit * 20;
+            } elseif ($videosToAdd > 0) {
+                $currentLimit = $tenant->monthly_videos_limit ?: (int) round(($tenant->monthly_minutes_limit ?? 3000) / 20);
+                $updateData['monthly_videos_limit'] = $currentLimit + $videosToAdd;
+                $updateData['monthly_minutes_limit'] = ($currentLimit + $videosToAdd) * 20;
             } elseif (!empty($data['new_minutes_limit'])) {
                 $newLimit = (int) round($data['new_minutes_limit'] / 20);
                 $updateData['monthly_videos_limit'] = $newLimit;
                 $updateData['monthly_minutes_limit'] = (int) $data['new_minutes_limit'];
             }
 
+            if (isset($data['new_recording_minutes_limit']) && is_numeric($data['new_recording_minutes_limit'])) {
+                $updateData['monthly_recording_minutes_limit'] = max(0, (int) $data['new_recording_minutes_limit']);
+            } elseif ($recordingMinutesToAdd > 0) {
+                $currentRec = $tenant->monthly_recording_minutes_limit ?? 300;
+                $updateData['monthly_recording_minutes_limit'] = $currentRec + $recordingMinutesToAdd;
+            } elseif ($planName !== $tenant->plan_name) {
+                $availablePlans = $this->getAvailablePlans();
+                if (isset($availablePlans[$planName]['recording_minutes'])) {
+                    $updateData['monthly_recording_minutes_limit'] = $availablePlans[$planName]['recording_minutes'];
+                }
+            }
+
             $tenant->update($updateData);
 
             $effectiveLimit = $tenant->monthly_videos_limit ?: 150;
-            $recordedVideos = $videosToAdd > 0 ? $videosToAdd : ($resetUsed ? $effectiveLimit : 0);
+            $recordedVideos = $videosToAdd > 0 ? $videosToAdd : ($updateData['monthly_videos_limit'] ?? $effectiveLimit);
+            $recordedRec = $recordingMinutesToAdd > 0 ? $recordingMinutesToAdd : ($updateData['monthly_recording_minutes_limit'] ?? ($tenant->monthly_recording_minutes_limit ?? 300));
 
             return SubscriptionTransaction::create([
                 'sales_id' => $salesAgent->id,
@@ -179,6 +237,7 @@ class SubscriptionManagementService
                 'duration_days' => $durationDays,
                 'videos_added' => $recordedVideos,
                 'minutes_added' => $recordedVideos * 20,
+                'recording_minutes_added' => $recordedRec,
                 'previous_expires_at' => $prevExpiresAt,
                 'new_expires_at' => $newExpiresAt,
                 'amount_collected' => !empty($data['amount_collected']) ? (float) $data['amount_collected'] : null,
