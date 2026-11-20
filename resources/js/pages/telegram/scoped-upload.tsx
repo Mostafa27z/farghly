@@ -91,7 +91,17 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
 
             setStatus('uploading');
             setProgressPercent(75);
-            setProgressText(isRtl ? 'جاري رفع الملف الصوتي المضغوط إلى الخادم...' : 'Uploading compressed audio...');
+            if (extracted.isExtracted && extracted.sizeBytes < selectedFile.size) {
+                const origMb = (selectedFile.size / (1024 * 1024)).toFixed(1);
+                const compMb = (extracted.sizeBytes / (1024 * 1024)).toFixed(1);
+                setProgressText(
+                    isRtl
+                        ? `تم ضغط الصوت بنجاح (${origMb}MB ➔ ${compMb}MB). جاري الرفع إلى الخادم...`
+                        : `Compressed successfully (${origMb}MB ➔ ${compMb}MB). Uploading to server...`
+                );
+            } else {
+                setProgressText(isRtl ? 'جاري رفع الملف الصوتي إلى الخادم...' : 'Uploading audio to server...');
+            }
 
             const formData = new FormData();
             formData.append('file', extracted.file);

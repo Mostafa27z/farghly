@@ -40,6 +40,8 @@ class AudioTranscriptionService
             ];
         }
 
+        $groqError = null;
+
         // 1. Try Groq Whisper (Fastest, cheapest, word/segment-level timestamps)
         if (!empty($this->groqKey)) {
             $result = $this->transcribeWithGroq($filePath, $originalName, $preferredLanguage, $prompt);
@@ -47,20 +49,46 @@ class AudioTranscriptionService
                 return $result;
             }
 
+            $groqError = $result['message_ar'] ?? 'فشل الاتصال بخدمة Groq';
             Log::warning('Groq Whisper failed, attempting Gemini fallback', [
-                'groq_error' => $result['message_ar'] ?? 'Unknown error',
+                'groq_error' => $groqError,
+                'status_code' => $result['status_code'] ?? null,
             ]);
+
+            // If rate limited by Groq, try Gemini fallback first before delaying
+            if (!empty($result['is_rate_limited']) && !empty($this->geminiKey)) {
+                $geminiResult = $this->transcribeWithGemini($filePath, $originalName, $preferredLanguage);
+                if ($geminiResult['success']) {
+                    return $geminiResult;
+                }
+                // If Gemini also failed, return the original rate-limited result so job can delay
+                return $result;
+            }
+        } else {
+            $groqError = 'مفتاح GROQ_API_KEY غير مضاف في ملف .env على الخادم';
+            Log::info('Groq API key not set, using Gemini directly');
         }
 
         // 2. Fallback to Gemini if Groq is not configured or failed
         if (!empty($this->geminiKey)) {
-            return $this->transcribeWithGemini($filePath, $originalName, $preferredLanguage);
+            $geminiResult = $this->transcribeWithGemini($filePath, $originalName, $preferredLanguage);
+            if ($geminiResult['success']) {
+                return $geminiResult;
+            }
+
+            $geminiError = $geminiResult['message_ar'] ?? 'فشل التفريغ عبر Gemini';
+
+            return [
+                'success' => false,
+                'message_ar' => "تعذر التفريغ: Groq ({$groqError}) | Gemini ({$geminiError})",
+                'message_en' => "Transcription failed: Groq ({$groqError}) | Gemini ({$geminiError})",
+            ];
         }
 
         return [
             'success' => false,
-            'message_ar' => 'يرجى ضبط مفتاح GROQ_API_KEY في ملف .env لتفعيل خدمة التفريغ الصوتي فائقة السرعة.',
-            'message_en' => 'Please configure GROQ_API_KEY in your .env file.',
+            'message_ar' => "فشل التفريغ الصوتي عبر Groq: {$groqError}. يرجى ضبط مفتاح GROQ_API_KEY أو GEMINI_API_KEY في .env.",
+            'message_en' => "Groq transcription failed: {$groqError}. Please configure GROQ_API_KEY or GEMINI_API_KEY in .env.",
         ];
     }
 
@@ -178,26 +206,31 @@ class AudioTranscriptionService
     }
 
     /**
-     * Fallback transcription using Gemini Multimodal Audio (inline base64 if <20MB).
+     * Fallback transcription using Gemini Multimodal Audio.
+     * Uses inline base64 for files <= 20MB, and Gemini Files API for files > 20MB (up to 2GB).
      */
     public function transcribeWithGemini(string $filePath, string $originalName, ?string $preferredLanguage = 'ar'): array
     {
+        $uploadedFileNameToDelete = null;
+
         try {
             $fileSize = filesize($filePath);
-            if ($fileSize > 20 * 1024 * 1024) {
-                return [
-                    'success' => false,
-                    'message_ar' => 'حجم الملف يتجاوز الحد المسموح للتفريغ الاحتياطي (20 ميجابايت).',
-                    'message_en' => 'File too large for fallback transcription.',
-                ];
-            }
 
             $mimeType = mime_content_type($filePath) ?: 'audio/mp3';
             if (!str_starts_with($mimeType, 'audio/') && !str_starts_with($mimeType, 'video/')) {
-                $mimeType = 'audio/mp3';
+                $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                $mimeType = match ($ext) {
+                    'mp3' => 'audio/mp3',
+                    'wav' => 'audio/wav',
+                    'ogg', 'oga' => 'audio/ogg',
+                    'm4a' => 'audio/m4a',
+                    'aac' => 'audio/aac',
+                    'flac' => 'audio/flac',
+                    'webm' => 'audio/webm',
+                    'mp4' => 'video/mp4',
+                    default => 'audio/mp3',
+                };
             }
-
-            $audioBase64 = base64_encode(file_get_contents($filePath));
 
             $model = config('services.gemini.model') ?: 'gemini-2.5-flash';
             $apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$this->geminiKey}";
@@ -208,22 +241,47 @@ class AudioTranscriptionService
                 . "ابدأ كل فقرة بفاصل زمني تقديري بصيغة [MM:SS] مثل: [00:00] النص هنا.\n"
                 . "أخرج النص المفرغ فقط دون أي تعليقات أو شروحات إضافية.";
 
-            $response = Http::timeout(180)
+            $contentsParts = [];
+
+            if ($fileSize <= 20 * 1024 * 1024) {
+                // Inline base64 (<20MB)
+                $audioBase64 = base64_encode(file_get_contents($filePath));
+                $contentsParts[] = [
+                    'inlineData' => [
+                        'mimeType' => $mimeType,
+                        'data' => $audioBase64,
+                    ],
+                ];
+            } else {
+                // Large file (>20MB, up to 2GB) via Gemini Files API
+                $fileUpload = $this->uploadToGeminiFiles($filePath, $originalName, $mimeType);
+                if (!$fileUpload['success']) {
+                    return [
+                        'success' => false,
+                        'message_ar' => 'فشل رفع الملف الكبير إلى Gemini Files API: ' . ($fileUpload['error'] ?? 'خطأ غير معروف'),
+                        'message_en' => 'Gemini Files API upload failed: ' . ($fileUpload['error'] ?? 'Unknown error'),
+                    ];
+                }
+
+                $uploadedFileNameToDelete = $fileUpload['file_name'];
+                $contentsParts[] = [
+                    'fileData' => [
+                        'mimeType' => $mimeType,
+                        'fileUri' => $fileUpload['file_uri'],
+                    ],
+                ];
+            }
+
+            $contentsParts[] = [
+                'text' => $prompt,
+            ];
+
+            $response = Http::timeout(300)
                 ->withoutVerifying()
                 ->post($apiUrl, [
                     'contents' => [
                         [
-                            'parts' => [
-                                [
-                                    'inlineData' => [
-                                        'mimeType' => $mimeType,
-                                        'data' => $audioBase64,
-                                    ],
-                                ],
-                                [
-                                    'text' => $prompt,
-                                ],
-                            ],
+                            'parts' => $contentsParts,
                         ],
                     ],
                     'generationConfig' => [
@@ -236,7 +294,7 @@ class AudioTranscriptionService
                 return [
                     'success' => false,
                     'message_ar' => 'فشل التفريغ عبر Gemini: ' . ($response->json()['error']['message'] ?? 'خطأ غير معروف'),
-                    'message_en' => 'Gemini transcription failed.',
+                    'message_en' => 'Gemini transcription failed: ' . ($response->json()['error']['message'] ?? 'Unknown error'),
                 ];
             }
 
@@ -315,9 +373,115 @@ class AudioTranscriptionService
 
             return [
                 'success' => false,
-                'message_ar' => 'حدث خطأ أثناء التفريغ الصوتي الاحتياطي: ' . $e->getMessage(),
+                'message_ar' => 'حدث خطأ أثناء التفريغ الصوتي الاحتياطي عبر Gemini: ' . $e->getMessage(),
                 'message_en' => 'Exception during Gemini fallback transcription: ' . $e->getMessage(),
             ];
+        } finally {
+            // Delete temporary Gemini file if one was uploaded
+            if ($uploadedFileNameToDelete) {
+                $this->deleteGeminiFile($uploadedFileNameToDelete);
+            }
+        }
+    }
+
+    /**
+     * Upload large media file (>20MB up to 2GB) to Google Gemini Files API via Resumable Upload.
+     */
+    protected function uploadToGeminiFiles(string $filePath, string $originalName, string $mimeType): array
+    {
+        try {
+            $fileSize = filesize($filePath);
+
+            // Step 1: Initialize Resumable Upload Session
+            $initResponse = Http::withoutVerifying()
+                ->timeout(60)
+                ->withHeaders([
+                    'X-Goog-Upload-Protocol' => 'resumable',
+                    'X-Goog-Upload-Command' => 'start',
+                    'X-Goog-Upload-Header-Content-Length' => (string) $fileSize,
+                    'X-Goog-Upload-Header-Content-Type' => $mimeType,
+                    'Content-Type' => 'application/json',
+                ])
+                ->post("https://generativelanguage.googleapis.com/upload/v1beta/files?key={$this->geminiKey}", [
+                    'file' => [
+                        'display_name' => $originalName,
+                    ],
+                ]);
+
+            if (!$initResponse->successful()) {
+                return [
+                    'success' => false,
+                    'error' => 'HTTP ' . $initResponse->status() . ': ' . $initResponse->body(),
+                ];
+            }
+
+            $uploadUrl = $initResponse->header('x-goog-upload-url');
+            if (empty($uploadUrl)) {
+                return [
+                    'success' => false,
+                    'error' => 'Missing x-goog-upload-url header from Gemini Files API.',
+                ];
+            }
+
+            // Step 2: Stream File Binary to Upload URL
+            $stream = fopen($filePath, 'r');
+            $uploadResponse = Http::withoutVerifying()
+                ->timeout(300)
+                ->withHeaders([
+                    'Content-Length' => (string) $fileSize,
+                    'X-Goog-Upload-Offset' => '0',
+                    'X-Goog-Upload-Command' => 'upload, finalize',
+                ])
+                ->withBody($stream, $mimeType)
+                ->post($uploadUrl);
+
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            if (!$uploadResponse->successful()) {
+                return [
+                    'success' => false,
+                    'error' => 'HTTP ' . $uploadResponse->status() . ': ' . $uploadResponse->body(),
+                ];
+            }
+
+            $fileInfo = $uploadResponse->json();
+            $fileUri = $fileInfo['file']['uri'] ?? null;
+            $fileName = $fileInfo['file']['name'] ?? null;
+
+            if (!$fileUri || !$fileName) {
+                return [
+                    'success' => false,
+                    'error' => 'Incomplete file metadata returned from Gemini Files API.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'file_uri' => $fileUri,
+                'file_name' => $fileName,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Gemini Files API upload exception: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Delete temporary file from Gemini Files API.
+     */
+    protected function deleteGeminiFile(string $fileName): void
+    {
+        try {
+            Http::withoutVerifying()
+                ->timeout(15)
+                ->delete("https://generativelanguage.googleapis.com/v1beta/{$fileName}?key={$this->geminiKey}");
+        } catch (\Throwable $e) {
+            Log::warning('Failed to delete Gemini file: ' . $e->getMessage());
         }
     }
 

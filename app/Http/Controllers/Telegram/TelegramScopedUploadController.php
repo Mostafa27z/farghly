@@ -59,7 +59,7 @@ class TelegramScopedUploadController extends Controller
     public function upload(Request $request, string $token)
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:51200', 'mimes:mp3,ogg,oga,wav,m4a,aac,webm,mp4,mov,flac'],
+            'file' => ['required', 'file', 'max:102400', 'mimes:mp3,ogg,oga,wav,m4a,aac,webm,mp4,mov,flac'],
             'title' => ['nullable', 'string', 'max:150'],
             'language' => ['nullable', 'string', 'max:10'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],

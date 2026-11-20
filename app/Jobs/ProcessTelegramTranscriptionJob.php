@@ -155,8 +155,8 @@ class ProcessTelegramTranscriptionJob implements ShouldQueue
         }
 
         if (!$result || empty($result['success'])) {
-            // Check if fallback to Gemini is viable (if file <= 20MB)
-            if ($guardCheck['suggest_gemini'] && filesize($filePath) <= 20 * 1024 * 1024) {
+            // Check if fallback to Gemini is viable (now supports any file size via Gemini Files API)
+            if ($guardCheck['suggest_gemini']) {
                 Log::info("Falling back to Gemini for Telegram pending #{$pending->id} due to Groq limit.");
                 $result = $audioService->transcribeWithGemini($filePath, basename($filePath), $pending->language);
                 if (!empty($result['success'])) {
