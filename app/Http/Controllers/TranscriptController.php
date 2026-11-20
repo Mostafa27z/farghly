@@ -6,6 +6,7 @@ use App\Models\Transcript;
 use App\Services\AudioTranscriptionService;
 use App\Services\DocumentThemeService;
 use App\Services\GeminiSummaryService;
+use App\Services\MediaDurationInspector;
 use App\Services\WordExportService;
 use App\Services\YouTubeTranscriptService;
 use Illuminate\Http\Request;
@@ -19,7 +20,8 @@ class TranscriptController extends Controller
     public function __construct(
         protected YouTubeTranscriptService $transcriptService,
         protected DocumentThemeService $themeService,
-        protected AudioTranscriptionService $audioService
+        protected AudioTranscriptionService $audioService,
+        protected MediaDurationInspector $durationInspector
     ) {}
 
     /**
@@ -60,6 +62,7 @@ class TranscriptController extends Controller
             'filters' => [
                 'search' => $search,
             ],
+            'maxServerUploadMb' => AudioTranscriptionService::getMaxServerUploadMb(100),
         ]);
     }
 
@@ -136,14 +139,14 @@ class TranscriptController extends Controller
         }
 
         $request->validate([
-            'file' => ['required', 'file', 'max:51200', 'mimes:mp3,wav,ogg,m4a,aac,webm,mp4,mov'],
+            'file' => ['required', 'file', 'max:102400', 'mimes:mp3,wav,ogg,oga,m4a,aac,webm,mp4,mov,mkv,flac'],
             'title' => ['nullable', 'string', 'max:255'],
             'channel_name' => ['nullable', 'string', 'max:255'],
             'language' => ['nullable', 'string', 'max:10'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
         ], [
             'file.required' => 'يرجى اختيار ملف صوتي أو فيديو صالح.',
-            'file.max' => 'الحد الأقصى لحجم الملف هو 50 ميجابايت.',
+            'file.max' => 'الحد الأقصى لحجم الملف للرفع المباشر هو 100 ميجابايت. للملفات الأكبر يرجى تفعيل خيار "الضغط على جهازك".',
         ]);
 
         $tenant = $request->user()->currentTenant;
@@ -158,12 +161,30 @@ class TranscriptController extends Controller
         }
 
         $file = $request->file('file');
-        $ext = $file->getClientOriginalExtension() ?: 'mp3';
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'mp3');
+        if ($ext === 'oga') {
+            $ext = 'ogg';
+        }
         $fileName = 'audio_' . time() . '_' . Str::random(8) . '.' . $ext;
         $mediaPath = $file->storeAs("transcripts/{$tenant->id}", $fileName, 'public');
+        $absolutePath = Storage::disk('public')->path($mediaPath);
 
-        // Transcribe via AudioTranscriptionService (Groq Whisper or Gemini fallback)
-        $result = $this->audioService->transcribe($file, $request->input('language', 'ar'));
+        // Pre-flight duration check via getID3 if client couldn't read metadata
+        if ($clientDuration <= 0) {
+            $inspection = $this->durationInspector->inspect($absolutePath);
+            $clientDuration = $inspection['duration_seconds'] ?: 0;
+            if ($clientDuration > 0 && !$tenant->canTranscribeRecord($clientDuration)) {
+                Storage::disk('public')->delete($mediaPath);
+                $fileMinutes = (int) ceil($clientDuration / 60);
+                $remMinutes = $tenant->remainingRecordingMinutes();
+                return back()->withErrors([
+                    'file' => "عذراً، رصيد دقائق التسجيل والتفريغ الصوتي المتبقي في باقتك ({$remMinutes} دقيقة) غير كافٍ لتفريغ هذا الملف ({$fileMinutes} دقيقة).",
+                ]);
+            }
+        }
+
+        // Transcribe via AudioTranscriptionService (Groq Whisper, Server FFmpeg if present, or Gemini Files API)
+        $result = $this->audioService->transcribe($absolutePath, $request->input('language', 'ar'));
 
         if (!$result['success']) {
             Storage::disk('public')->delete($mediaPath);

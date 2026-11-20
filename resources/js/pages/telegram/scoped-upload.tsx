@@ -1,7 +1,12 @@
 import LanguageToggle from '@/components/language-toggle';
+import ProcessingModeSelector, { getSavedProcessingMode } from '@/components/processing-mode-selector';
 import ThemeToggle from '@/components/theme-toggle';
 import { useLanguage } from '@/hooks/use-language';
-import { prepareMediaForTranscription } from '@/utils/audio-extractor';
+import {
+    prepareMediaForTranscription,
+    ProcessingMode,
+    uploadFormDataWithProgress,
+} from '@/utils/audio-extractor';
 import { Head } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -10,11 +15,7 @@ import {
     Clock,
     FileAudio,
     FileVideo,
-    Globe,
-    Layers,
     Loader2,
-    Mic,
-    Send,
     Sparkles,
     UploadCloud,
     X,
@@ -29,15 +30,17 @@ interface Props {
         monthly_recording_minutes_limit: number;
     };
     userName: string;
+    maxServerUploadMb?: number;
 }
 
-export default function ScopedUpload({ token, tenant, userName }: Props) {
+export default function ScopedUpload({ token, tenant, userName, maxServerUploadMb = 100 }: Props) {
     const { isRtl } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [title, setTitle] = useState('');
     const [language, setLanguage] = useState<'ar' | 'en' | 'auto'>('ar');
+    const [processingMode, setProcessingMode] = useState<ProcessingMode>(() => getSavedProcessingMode('server'));
 
     // Processing / Upload states
     const [status, setStatus] = useState<'idle' | 'compressing' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed'>('idle');
@@ -53,6 +56,12 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
 
         setSelectedFile(file);
         setErrorMessage(null);
+
+        // Automatically switch to local compression if file exceeds direct server upload limit
+        if (file.size > maxServerUploadMb * 1024 * 1024) {
+            setProcessingMode('local');
+        }
+
         if (!title) {
             const clean = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
             setTitle(clean);
@@ -63,17 +72,33 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
         e.preventDefault();
         if (!selectedFile) return;
 
+        const effectiveMode: ProcessingMode =
+            selectedFile.size > maxServerUploadMb * 1024 * 1024 ? 'local' : processingMode;
+
         setErrorMessage(null);
-        setStatus('compressing');
+        setStatus(effectiveMode === 'local' ? 'compressing' : 'uploading');
         setProgressPercent(5);
-        setProgressText(isRtl ? 'جاري فحص الملف وضغط الصوت داخل متصفحك...' : 'Preparing audio in browser...');
+        setProgressText(
+            effectiveMode === 'local'
+                ? isRtl
+                    ? 'جاري فحص الملف وضغط الصوت على جهازك...'
+                    : 'Inspecting & compressing audio on your device...'
+                : isRtl
+                  ? 'جاري تجهيز الرفع المباشر السريع إلى الخادم...'
+                  : 'Preparing fast direct upload to server...'
+        );
 
         try {
-            // In-browser compression to 32kbps MP3
-            const extracted = await prepareMediaForTranscription(selectedFile, (p, text) => {
-                setProgressPercent(Math.min(70, Math.round(p * 0.7)));
-                setProgressText(text);
-            });
+            const extracted = await prepareMediaForTranscription(
+                selectedFile,
+                (p, text) => {
+                    if (effectiveMode === 'local') {
+                        setProgressPercent(Math.min(60, Math.round(p * 0.6)));
+                        setProgressText(text);
+                    }
+                },
+                { mode: effectiveMode, isRtl }
+            );
 
             // Pre-flight duration check against remaining quota
             if (extracted.durationSeconds > 0) {
@@ -90,18 +115,23 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
             }
 
             setStatus('uploading');
-            setProgressPercent(75);
+            const uploadBasePct = effectiveMode === 'local' ? 60 : 5;
+            const uploadRangePct = 95 - uploadBasePct;
+            setProgressPercent(uploadBasePct);
+
+            let compressionSummary = '';
             if (extracted.isExtracted && extracted.sizeBytes < selectedFile.size) {
                 const origMb = (selectedFile.size / (1024 * 1024)).toFixed(1);
                 const compMb = (extracted.sizeBytes / (1024 * 1024)).toFixed(1);
-                setProgressText(
-                    isRtl
-                        ? `تم ضغط الصوت بنجاح (${origMb}MB ➔ ${compMb}MB). جاري الرفع إلى الخادم...`
-                        : `Compressed successfully (${origMb}MB ➔ ${compMb}MB). Uploading to server...`
-                );
-            } else {
-                setProgressText(isRtl ? 'جاري رفع الملف الصوتي إلى الخادم...' : 'Uploading audio to server...');
+                compressionSummary = isRtl
+                    ? `تم الضغط (${origMb}MB ➔ ${compMb}MB) • `
+                    : `Compressed (${origMb}MB ➔ ${compMb}MB) • `;
             }
+
+            setProgressText(
+                compressionSummary +
+                    (isRtl ? 'جاري رفع الملف إلى الخادم...' : 'Uploading file to server...')
+            );
 
             const formData = new FormData();
             formData.append('file', extracted.file);
@@ -109,19 +139,34 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
             formData.append('language', language);
             formData.append('duration_seconds', String(extracted.durationSeconds || 0));
 
-            const response = await fetch(`/telegram/upload/${token}`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json',
+            const { ok, data } = await uploadFormDataWithProgress<{
+                success?: boolean;
+                job_id?: number;
+                message?: string;
+            }>(
+                `/telegram/upload/${token}`,
+                formData,
+                {
+                    Accept: 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    'X-CSRF-TOKEN':
+                        (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
                 },
-            });
+                ({ loadedBytes, totalBytes, percent }) => {
+                    const overall = Math.min(95, uploadBasePct + Math.round((percent / 100) * uploadRangePct));
+                    const loadedMb = (loadedBytes / (1024 * 1024)).toFixed(1);
+                    const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
+                    setProgressPercent(overall);
+                    setProgressText(
+                        compressionSummary +
+                            (isRtl
+                                ? `جاري الرفع إلى الخادم (${loadedMb} / ${totalMb} MB)...`
+                                : `Uploading to server (${loadedMb} / ${totalMb} MB)...`)
+                    );
+                }
+            );
 
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
+            if (!ok || !data.success || !data.job_id) {
                 throw new Error(data.message || (isRtl ? 'فشل رفع الملف إلى الخادم.' : 'Upload failed.'));
             }
 
@@ -273,9 +318,13 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
                         </div>
 
                         <p className="text-[10px] text-muted-foreground/80 leading-relaxed">
-                            {isRtl
-                                ? 'يتم ضغط الصوت محلياً داخل جهازك لتوفير 95% من حجم البيانات وتسريع الرفع على الاستضافة.'
-                                : 'Audio is being compressed in your browser to save 95% bandwidth.'}
+                            {processingMode === 'local'
+                                ? isRtl
+                                    ? 'يتم ضغط الصوت محلياً داخل جهازك لتوفير حتى 90% من باقة الإنترنت.'
+                                    : 'Audio is being compressed on your device to save up to 90% internet data.'
+                                : isRtl
+                                  ? 'يتم رفع الملف مباشرة للخادم لأقصى سرعة ممكنة في التفريغ.'
+                                  : 'Uploading directly to server for fastest possible transcription.'}
                         </p>
                     </div>
                 )}
@@ -295,7 +344,7 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.aac,.webm,.mp4,.mov,.flac"
+                                accept="audio/*,video/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.webm,.mp4,.mov,.mkv,.flac"
                                 onChange={handleFileSelect}
                                 className="hidden"
                             />
@@ -336,7 +385,7 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
                                         {isRtl ? 'انقر لاختيار ملف صوت أو فيديو من جهازك' : 'Click to select audio or video'}
                                     </div>
                                     <p className="text-[10px] text-muted-foreground font-mono">
-                                        MP3, MP4, WAV, M4A, MOV, WEBM (حتى 1 جيجابايت مع الضغط التلقائي)
+                                        MP3, MP4, OGG, WAV, M4A, MOV, WEBM
                                     </p>
                                 </div>
                             )}
@@ -383,6 +432,15 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
                             </div>
                         </div>
 
+                        {/* Processing Mode Selector (On Server vs On Device) */}
+                        <ProcessingModeSelector
+                            mode={processingMode}
+                            onChange={setProcessingMode}
+                            isRtl={isRtl}
+                            selectedFile={selectedFile}
+                            maxServerUploadMb={maxServerUploadMb}
+                        />
+
                         {/* Submit Button */}
                         <button
                             type="submit"
@@ -390,7 +448,15 @@ export default function ScopedUpload({ token, tenant, userName }: Props) {
                             className="w-full py-3 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-2 mt-2"
                         >
                             <Sparkles size={16} />
-                            <span>{isRtl ? 'بدء الضغط والتفريغ بالذكاء الاصطناعي' : 'Start Compression & Transcription'}</span>
+                            <span>
+                                {processingMode === 'server'
+                                    ? isRtl
+                                        ? 'رفع فوري وتفريغ على الخادم'
+                                        : 'Fast Upload & Transcribe on Server'
+                                    : isRtl
+                                      ? 'ضغط على جهازك وتفريغ بالذكاء الاصطناعي'
+                                      : 'Compress on Device & Transcribe'}
+                            </span>
                         </button>
                     </form>
                 )}

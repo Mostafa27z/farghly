@@ -20,7 +20,45 @@ class AudioTranscriptionService
     }
 
     /**
-     * Transcribe an uploaded audio file using Groq Whisper (Primary) or Gemini (Fallback).
+     * Compute the effective maximum single-file upload size (in MB) accepted directly by this PHP server.
+     */
+    public static function getMaxServerUploadMb(int $appCapMb = 100): int
+    {
+        $parseIniBytes = static function (?string $value): int {
+            if (!$value) {
+                return 0;
+            }
+            $value = trim($value);
+            if ($value === '' || $value === '0' || $value === '-1') {
+                return 0;
+            }
+            $unit = strtolower(substr($value, -1));
+            $num = (float) $value;
+            return (int) match ($unit) {
+                'g' => $num * 1024 * 1024 * 1024,
+                'm' => $num * 1024 * 1024,
+                'k' => $num * 1024,
+                default => $num,
+            };
+        };
+
+        $uploadBytes = $parseIniBytes(ini_get('upload_max_filesize') ?: null);
+        $postBytes = $parseIniBytes(ini_get('post_max_size') ?: null);
+
+        $limitsMb = [$appCapMb];
+        if ($uploadBytes > 0) {
+            $limitsMb[] = (int) floor($uploadBytes / (1024 * 1024));
+        }
+        if ($postBytes > 0) {
+            // Reserve ~1 MB for multipart form boundaries & fields
+            $limitsMb[] = max(1, (int) floor($postBytes / (1024 * 1024)) - 1);
+        }
+
+        return max(2, min($limitsMb));
+    }
+
+    /**
+     * Transcribe an uploaded audio/video file using Groq Whisper (Primary) or Gemini (Fallback/Large Files).
      *
      * @param UploadedFile|string $file File instance or absolute path on disk
      * @param string|null $preferredLanguage e.g. 'ar', 'en', or null for auto-detect
@@ -41,55 +79,179 @@ class AudioTranscriptionService
         }
 
         $groqError = null;
+        $tempServerCompressedPath = null;
+        $groqMaxBytes = (int) (24.5 * 1024 * 1024); // Groq Whisper API hard limit is 25MB
 
-        // 1. Try Groq Whisper (Fastest, cheapest, word/segment-level timestamps)
-        if (!empty($this->groqKey)) {
-            $result = $this->transcribeWithGroq($filePath, $originalName, $preferredLanguage, $prompt);
-            if ($result['success']) {
-                return $result;
+        try {
+            $workingPath = $filePath;
+            $workingName = $originalName;
+            $workingSize = filesize($workingPath);
+            $ext = strtolower(pathinfo($workingName, PATHINFO_EXTENSION) ?: pathinfo($workingPath, PATHINFO_EXTENSION));
+            $isUnsupportedByGroqContainer = in_array($ext, ['mov', 'mkv', 'avi'], true);
+
+            // If file is too large for Groq (>24.5MB) or uses a video container Groq rejects,
+            // attempt ultra-fast server-side FFmpeg audio extraction if available.
+            if (($workingSize > $groqMaxBytes || $isUnsupportedByGroqContainer) && !empty($this->groqKey)) {
+                $compressed = $this->tryCompressWithServerFfmpeg($workingPath);
+                if ($compressed && file_exists($compressed) && filesize($compressed) > 0 && filesize($compressed) <= $groqMaxBytes) {
+                    $tempServerCompressedPath = $compressed;
+                    $workingPath = $compressed;
+                    $workingName = pathinfo($originalName, PATHINFO_FILENAME) . '.mp3';
+                    $workingSize = filesize($workingPath);
+                    $isUnsupportedByGroqContainer = false;
+                }
             }
 
-            $groqError = $result['message_ar'] ?? 'فشل الاتصال بخدمة Groq';
-            Log::warning('Groq Whisper failed, attempting Gemini fallback', [
-                'groq_error' => $groqError,
-                'status_code' => $result['status_code'] ?? null,
-            ]);
+            // 1. Try Groq Whisper (Fastest, cheapest, word/segment-level timestamps) ONLY if file fits Groq's limits
+            if (!empty($this->groqKey)) {
+                if ($workingSize <= $groqMaxBytes && !$isUnsupportedByGroqContainer) {
+                    $result = $this->transcribeWithGroq($workingPath, $workingName, $preferredLanguage, $prompt);
+                    if ($result['success']) {
+                        return $result;
+                    }
 
-            // If rate limited by Groq, try Gemini fallback first before delaying
-            if (!empty($result['is_rate_limited']) && !empty($this->geminiKey)) {
-                $geminiResult = $this->transcribeWithGemini($filePath, $originalName, $preferredLanguage);
+                    $groqError = $result['message_ar'] ?? 'فشل الاتصال بخدمة Groq';
+                    Log::warning('Groq Whisper failed, attempting Gemini fallback', [
+                        'groq_error' => $groqError,
+                        'status_code' => $result['status_code'] ?? null,
+                    ]);
+
+                    // If rate limited by Groq, try Gemini fallback first before delaying
+                    if (!empty($result['is_rate_limited']) && !empty($this->geminiKey)) {
+                        $geminiResult = $this->transcribeWithGemini($workingPath, $workingName, $preferredLanguage);
+                        if ($geminiResult['success']) {
+                            return $geminiResult;
+                        }
+                        // If Gemini also failed, return the original rate-limited result so job can delay
+                        return $result;
+                    }
+                } else {
+                    // Skip wasted Groq upload for >25MB files when FFmpeg isn't available; route directly to Gemini Files API
+                    $sizeMb = round($workingSize / (1024 * 1024), 1);
+                    $groqError = "الملف ({$sizeMb} MB) يتجاوز حد Groq المباشر (25 MB)";
+                    Log::info('Bypassing Groq for large/video file and routing directly to Gemini Files API', [
+                        'size_mb' => $sizeMb,
+                        'ext' => $ext,
+                    ]);
+                }
+            } else {
+                $groqError = 'مفتاح GROQ_API_KEY غير مضاف في ملف .env على الخادم';
+                Log::info('Groq API key not set, using Gemini directly');
+            }
+
+            // 2. Fallback / Large-File path via Gemini (supports inline <=20MB and Files API up to 2GB)
+            if (!empty($this->geminiKey)) {
+                $geminiResult = $this->transcribeWithGemini($workingPath, $workingName, $preferredLanguage);
                 if ($geminiResult['success']) {
                     return $geminiResult;
                 }
-                // If Gemini also failed, return the original rate-limited result so job can delay
-                return $result;
-            }
-        } else {
-            $groqError = 'مفتاح GROQ_API_KEY غير مضاف في ملف .env على الخادم';
-            Log::info('Groq API key not set, using Gemini directly');
-        }
 
-        // 2. Fallback to Gemini if Groq is not configured or failed
-        if (!empty($this->geminiKey)) {
-            $geminiResult = $this->transcribeWithGemini($filePath, $originalName, $preferredLanguage);
-            if ($geminiResult['success']) {
-                return $geminiResult;
-            }
+                $geminiError = $geminiResult['message_ar'] ?? 'فشل التفريغ عبر Gemini';
 
-            $geminiError = $geminiResult['message_ar'] ?? 'فشل التفريغ عبر Gemini';
+                return [
+                    'success' => false,
+                    'message_ar' => "تعذر التفريغ: Groq ({$groqError}) | Gemini ({$geminiError})",
+                    'message_en' => "Transcription failed: Groq ({$groqError}) | Gemini ({$geminiError})",
+                ];
+            }
 
             return [
                 'success' => false,
-                'message_ar' => "تعذر التفريغ: Groq ({$groqError}) | Gemini ({$geminiError})",
-                'message_en' => "Transcription failed: Groq ({$groqError}) | Gemini ({$geminiError})",
+                'message_ar' => "فشل التفريغ الصوتي عبر Groq: {$groqError}. يرجى ضبط مفتاح GROQ_API_KEY أو GEMINI_API_KEY في .env.",
+                'message_en' => "Groq transcription failed: {$groqError}. Please configure GROQ_API_KEY or GEMINI_API_KEY in .env.",
             ];
+        } finally {
+            if ($tempServerCompressedPath && file_exists($tempServerCompressedPath)) {
+                @unlink($tempServerCompressedPath);
+            }
+        }
+    }
+
+    /**
+     * Optional ultra-fast server-side FFmpeg audio extraction (16kHz Mono 32kbps MP3).
+     * Gracefully returns null on shared hosting where FFmpeg or proc_open is unavailable.
+     */
+    protected function tryCompressWithServerFfmpeg(string $inputPath): ?string
+    {
+        if (!function_exists('proc_open')) {
+            return null;
         }
 
-        return [
-            'success' => false,
-            'message_ar' => "فشل التفريغ الصوتي عبر Groq: {$groqError}. يرجى ضبط مفتاح GROQ_API_KEY أو GEMINI_API_KEY في .env.",
-            'message_en' => "Groq transcription failed: {$groqError}. Please configure GROQ_API_KEY or GEMINI_API_KEY in .env.",
-        ];
+        static $ffmpegBinary = null;
+        static $checked = false;
+
+        if (!$checked) {
+            $checked = true;
+            $candidates = PHP_OS_FAMILY === 'Windows'
+                ? ['ffmpeg']
+                : ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', 'ffmpeg'];
+
+            foreach ($candidates as $bin) {
+                $proc = @proc_open(
+                    [$bin, '-version'],
+                    [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                    $pipes
+                );
+                if (is_resource($proc)) {
+                    foreach ($pipes as $p) {
+                        @fclose($p);
+                    }
+                    if (proc_close($proc) === 0) {
+                        $ffmpegBinary = $bin;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!$ffmpegBinary) {
+            return null;
+        }
+
+        $outputPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'farghly_srv_' . uniqid('', true) . '.mp3';
+
+        try {
+            $proc = @proc_open(
+                [
+                    $ffmpegBinary,
+                    '-y',
+                    '-i', $inputPath,
+                    '-vn',
+                    '-ac', '1',
+                    '-ar', '16000',
+                    '-b:a', '32k',
+                    '-f', 'mp3',
+                    $outputPath,
+                ],
+                [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+                $pipes
+            );
+
+            if (!is_resource($proc)) {
+                return null;
+            }
+
+            foreach ($pipes as $p) {
+                @fclose($p);
+            }
+
+            $exitCode = proc_close($proc);
+            if ($exitCode === 0 && file_exists($outputPath) && filesize($outputPath) > 0) {
+                Log::info('Server-side FFmpeg audio compression succeeded', [
+                    'original_bytes' => filesize($inputPath),
+                    'compressed_bytes' => filesize($outputPath),
+                ]);
+                return $outputPath;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Server-side FFmpeg compression failed, falling back cleanly', ['error' => $e->getMessage()]);
+        }
+
+        if (file_exists($outputPath)) {
+            @unlink($outputPath);
+        }
+
+        return null;
     }
 
     /**
@@ -216,18 +378,21 @@ class AudioTranscriptionService
         try {
             $fileSize = filesize($filePath);
 
-            $mimeType = mime_content_type($filePath) ?: 'audio/mp3';
+            $mimeType = mime_content_type($filePath) ?: '';
             if (!str_starts_with($mimeType, 'audio/') && !str_starts_with($mimeType, 'video/')) {
-                $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION) ?: pathinfo($filePath, PATHINFO_EXTENSION));
                 $mimeType = match ($ext) {
                     'mp3' => 'audio/mp3',
                     'wav' => 'audio/wav',
                     'ogg', 'oga' => 'audio/ogg',
-                    'm4a' => 'audio/m4a',
+                    'm4a' => 'audio/mp4',
                     'aac' => 'audio/aac',
                     'flac' => 'audio/flac',
                     'webm' => 'audio/webm',
                     'mp4' => 'video/mp4',
+                    'mov' => 'video/quicktime',
+                    'mkv' => 'video/x-matroska',
+                    'avi' => 'video/x-msvideo',
                     default => 'audio/mp3',
                 };
             }
@@ -436,7 +601,7 @@ class AudioTranscriptionService
                 ->post($uploadUrl);
 
             if (is_resource($stream)) {
-                fclose($stream);
+                @fclose($stream);
             }
 
             if (!$uploadResponse->successful()) {
@@ -449,11 +614,36 @@ class AudioTranscriptionService
             $fileInfo = $uploadResponse->json();
             $fileUri = $fileInfo['file']['uri'] ?? null;
             $fileName = $fileInfo['file']['name'] ?? null;
+            $fileState = $fileInfo['file']['state'] ?? 'ACTIVE';
 
             if (!$fileUri || !$fileName) {
                 return [
                     'success' => false,
                     'error' => 'Incomplete file metadata returned from Gemini Files API.',
+                ];
+            }
+
+            // Step 3: Wait for Gemini to finish indexing large/video files (PROCESSING -> ACTIVE)
+            $pollAttempts = 0;
+            while ($fileState === 'PROCESSING' && $pollAttempts < 30) {
+                $pollAttempts++;
+                sleep(2);
+
+                $statusRes = Http::withoutVerifying()
+                    ->timeout(20)
+                    ->get("https://generativelanguage.googleapis.com/v1beta/{$fileName}?key={$this->geminiKey}");
+
+                if ($statusRes->successful()) {
+                    $statusJson = $statusRes->json();
+                    $fileState = $statusJson['state'] ?? ($statusJson['file']['state'] ?? 'ACTIVE');
+                }
+            }
+
+            if ($fileState !== 'ACTIVE') {
+                $this->deleteGeminiFile($fileName);
+                return [
+                    'success' => false,
+                    'error' => "Gemini file processing state is '{$fileState}' instead of ACTIVE.",
                 ];
             }
 

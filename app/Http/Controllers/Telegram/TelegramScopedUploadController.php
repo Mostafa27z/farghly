@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessTelegramTranscriptionJob;
 use App\Models\TelegramLinkCode;
 use App\Models\TelegramPendingTranscription;
+use App\Services\AudioTranscriptionService;
 use App\Services\MediaDurationInspector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -50,6 +51,7 @@ class TelegramScopedUploadController extends Controller
                 'monthly_recording_minutes_limit' => $tenant->monthly_recording_minutes_limit ?? 300,
             ],
             'userName' => $user->name,
+            'maxServerUploadMb' => AudioTranscriptionService::getMaxServerUploadMb(100),
         ]);
     }
 
@@ -59,7 +61,7 @@ class TelegramScopedUploadController extends Controller
     public function upload(Request $request, string $token)
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:102400', 'mimes:mp3,ogg,oga,wav,m4a,aac,webm,mp4,mov,flac'],
+            'file' => ['required', 'file', 'max:102400', 'mimes:mp3,ogg,oga,wav,m4a,aac,webm,mp4,mov,mkv,flac'],
             'title' => ['nullable', 'string', 'max:150'],
             'language' => ['nullable', 'string', 'max:10'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],

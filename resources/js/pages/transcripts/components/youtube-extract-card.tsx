@@ -1,11 +1,10 @@
+import ProcessingModeSelector, { getSavedProcessingMode } from '@/components/processing-mode-selector';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/hooks/use-language';
-import { prepareMediaForTranscription } from '@/utils/audio-extractor';
+import { prepareMediaForTranscription, ProcessingMode } from '@/utils/audio-extractor';
 import { router, useForm, usePage } from '@inertiajs/react';
 import {
-    CheckCircle2,
     ClipboardPaste,
-    Clock,
     FileAudio,
     FileVideo,
     Loader2,
@@ -19,7 +18,7 @@ import React, { useRef, useState } from 'react';
 
 export default function YoutubeExtractCard() {
     const { isRtl } = useLanguage();
-    const { tenant } = usePage().props as any;
+    const { tenant, maxServerUploadMb = 100 } = usePage().props as any;
     const [mode, setMode] = useState<'youtube' | 'upload'>('youtube');
     const [isFocused, setIsFocused] = useState(false);
 
@@ -40,6 +39,7 @@ export default function YoutubeExtractCard() {
     const [title, setTitle] = useState('');
     const [channelName, setChannelName] = useState('');
     const [language, setLanguage] = useState('ar');
+    const [processingMode, setProcessingMode] = useState<ProcessingMode>(() => getSavedProcessingMode('server'));
     const [isConverting, setIsConverting] = useState(false);
     const [conversionProgress, setConversionProgress] = useState(0);
     const [statusMessage, setStatusMessage] = useState('');
@@ -68,29 +68,28 @@ export default function YoutubeExtractCard() {
         }
     };
 
+    const applySelectedFile = (file: File) => {
+        setSelectedFile(file);
+        setUploadError(null);
+        if (file.size > maxServerUploadMb * 1024 * 1024) {
+            setProcessingMode('local');
+        }
+        if (!title) {
+            const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            setTitle(cleanName);
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setSelectedFile(file);
-            setUploadError(null);
-            if (!title) {
-                // Auto-fill title from clean filename
-                const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-                setTitle(cleanName);
-            }
+            applySelectedFile(e.target.files[0]);
         }
     };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const file = e.dataTransfer.files[0];
-            setSelectedFile(file);
-            setUploadError(null);
-            if (!title) {
-                const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-                setTitle(cleanName);
-            }
+            applySelectedFile(e.dataTransfer.files[0]);
         }
     };
 
@@ -98,25 +97,63 @@ export default function YoutubeExtractCard() {
         e.preventDefault();
         if (!selectedFile) return;
 
+        const effectiveMode: ProcessingMode =
+            selectedFile.size > maxServerUploadMb * 1024 * 1024 ? 'local' : processingMode;
+
         setUploadError(null);
-        setIsConverting(true);
+        setIsConverting(effectiveMode === 'local');
+        setIsUploading(effectiveMode === 'server');
         setConversionProgress(5);
-        setStatusMessage(isRtl ? 'جارٍ فحص الملف الصوتي...' : 'Inspecting media file...');
+        setStatusMessage(
+            effectiveMode === 'local'
+                ? isRtl
+                    ? 'جارٍ فحص وضغط الملف على جهازك...'
+                    : 'Inspecting & compressing file on device...'
+                : isRtl
+                  ? 'جارٍ تجهيز الرفع السريع إلى الخادم...'
+                  : 'Preparing fast server upload...'
+        );
 
         try {
-            // 1. In-browser extraction & optimization (saves 95%+ bandwidth)
-            const extracted = await prepareMediaForTranscription(selectedFile, (pct, msg) => {
-                setConversionProgress(pct);
-                setStatusMessage(msg);
-            });
+            const extracted = await prepareMediaForTranscription(
+                selectedFile,
+                (pct, msg) => {
+                    if (effectiveMode === 'local') {
+                        setConversionProgress(Math.min(55, Math.round(pct * 0.55)));
+                        setStatusMessage(msg);
+                    }
+                },
+                { mode: effectiveMode, isRtl }
+            );
 
             setIsConverting(false);
             setIsUploading(true);
-            setStatusMessage(isRtl ? 'جارٍ رفع الصوت والتفريغ بالذكاء الاصطناعي...' : 'Uploading and transcribing with AI...');
 
-            // 2. Submit to Laravel
+            const uploadBasePct = effectiveMode === 'local' ? 55 : 5;
+            const uploadRangePct = 95 - uploadBasePct;
+            setConversionProgress(uploadBasePct);
+
+            let compressionNote = '';
+            if (extracted.isExtracted && extracted.sizeBytes < selectedFile.size) {
+                const origMb = (selectedFile.size / (1024 * 1024)).toFixed(1);
+                const compMb = (extracted.sizeBytes / (1024 * 1024)).toFixed(1);
+                compressionNote = isRtl
+                    ? `تم الضغط (${origMb}MB ➔ ${compMb}MB) • `
+                    : `Compressed (${origMb}MB ➔ ${compMb}MB) • `;
+            }
+
+            setStatusMessage(
+                compressionNote +
+                    (isRtl
+                        ? 'جارٍ رفع الملف والتفريغ بالذكاء الاصطناعي...'
+                        : 'Uploading and transcribing with AI...')
+            );
+
+            // 2. Submit to Laravel preserving exact file extension
             const formData = new FormData();
-            formData.append('file', extracted.file, extracted.originalName.replace(/\.[^/.]+$/, '') + '.wav');
+            const uploadFilename =
+                extracted.file instanceof File ? extracted.file.name : extracted.originalName;
+            formData.append('file', extracted.file, uploadFilename);
             formData.append('title', title || extracted.originalName);
             formData.append('channel_name', channelName || (isRtl ? 'تسجيل مرفوع' : 'Uploaded Media'));
             formData.append('language', language);
@@ -124,6 +161,29 @@ export default function YoutubeExtractCard() {
 
             router.post(route('transcripts.upload'), formData, {
                 forceFormData: true,
+                onProgress: (progress) => {
+                    if (progress?.percentage !== undefined) {
+                        const pct = Math.min(
+                            95,
+                            uploadBasePct + Math.round((progress.percentage / 100) * uploadRangePct)
+                        );
+                        setConversionProgress(pct);
+                        if (progress.percentage >= 100) {
+                            setStatusMessage(
+                                isRtl
+                                    ? 'تم الرفع! جارٍ التفريغ بالذكاء الاصطناعي على الخادم...'
+                                    : 'Uploaded! Transcribing with AI on server...'
+                            );
+                        } else {
+                            setStatusMessage(
+                                compressionNote +
+                                    (isRtl
+                                        ? `جارٍ الرفع إلى الخادم (${Math.round(progress.percentage)}%)...`
+                                        : `Uploading to server (${Math.round(progress.percentage)}%)...`)
+                            );
+                        }
+                    }
+                },
                 onSuccess: () => {
                     setSelectedFile(null);
                     setTitle('');
@@ -299,7 +359,7 @@ export default function YoutubeExtractCard() {
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept="audio/*,video/*,.mp3,.wav,.ogg,.m4a,.aac,.webm,.mp4,.mov,.mkv"
+                                accept="audio/*,video/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.webm,.mp4,.mov,.mkv,.flac"
                                 onChange={handleFileChange}
                                 className="hidden"
                             />
@@ -335,13 +395,23 @@ export default function YoutubeExtractCard() {
                                         </p>
                                         <p className="text-[11px] text-muted-foreground">
                                             {isRtl
-                                                ? 'يدعم MP4, MP3, WAV, M4A, MOV, WEBM (يتم ضغط واستخلاص الصوت بالمتصفح فورياً)'
-                                                : 'Supports MP4, MP3, WAV, M4A, MOV, WEBM (optimized in browser)'}
+                                                ? 'يدعم MP4, MP3, OGG, WAV, M4A, MOV, WEBM (اختر المعالجة على الخادم أو الضغط على جهازك)'
+                                                : 'Supports MP4, MP3, OGG, WAV, M4A, MOV, WEBM (choose Server or Local Device mode)'}
                                         </p>
                                     </div>
                                 </div>
                             )}
                         </div>
+
+                        {/* Processing Mode Selector (On Server vs On Local Device) */}
+                        <ProcessingModeSelector
+                            mode={processingMode}
+                            onChange={setProcessingMode}
+                            isRtl={isRtl}
+                            selectedFile={selectedFile}
+                            maxServerUploadMb={maxServerUploadMb}
+                            disabled={isConverting || isUploading}
+                        />
 
                         {/* Title and Metadata Inputs (when file is chosen) */}
                         {selectedFile && (
@@ -400,9 +470,9 @@ export default function YoutubeExtractCard() {
                         )}
 
                         {/* Submit Button */}
-                        <div className="flex items-center justify-between pt-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
                             <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                                <Zap className="size-3.5 text-emerald-500" />
+                                <Zap className="size-3.5 text-emerald-500 shrink-0" />
                                 <span>{isRtl ? 'معالجة فائقة السرعة عبر Groq Whisper Large v3' : 'Ultra-fast Groq Whisper Large v3'}</span>
                             </span>
 
@@ -419,7 +489,15 @@ export default function YoutubeExtractCard() {
                                 ) : (
                                     <>
                                         <Wand2 className="size-4" />
-                                        <span>{isRtl ? 'بدء التفريغ بالذكاء الاصطناعي' : 'Start AI Transcription'}</span>
+                                        <span>
+                                            {processingMode === 'server'
+                                                ? isRtl
+                                                    ? 'رفع سريع وتفريغ على الخادم'
+                                                    : 'Fast Upload & Transcribe on Server'
+                                                : isRtl
+                                                  ? 'ضغط على جهازك وتفريغ بالذكاء الاصطناعي'
+                                                  : 'Compress on Device & Transcribe'}
+                                        </span>
                                     </>
                                 )}
                             </Button>
